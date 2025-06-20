@@ -34,7 +34,7 @@ const AdminPage = () => {
         </div>
       </div>
       {/*RIGHT*/}
-      <div className="w-full lg:w-1/3">
+      <div className="w-full lg:w-1/3 flex flex">
         {/* CALENDAR */}
           <EventCalendar />
           <Announcements />
