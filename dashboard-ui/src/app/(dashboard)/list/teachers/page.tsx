@@ -4,8 +4,8 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { role, teachersData } from "@/lib/data";
 import prisma from "@/lib/prisma";
-import { ITEMS_PER_PAGE } from "@/lib/settings";
-import { Class, Subject, Teacher } from "@prisma/client";
+import { ITEM_PER_PAGE } from "@/lib/settings";
+import { Class, Prisma, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -92,19 +92,41 @@ const TeacherListPage = async ({searchParams}:{searchParams:{[key:string]:string
 
   const p = page ? parseInt(page) : 1;
 
+  // URL PARAMS CONDITION
 
-  const data = await prisma.teacher.findMany({
-    include:{
-      subjects: true,
-      classes: true,
-    },
-    take:ITEMS_PER_PAGE,
-    skip: ITEMS_PER_PAGE * (p - 1),
-  })
+  const query: Prisma.TeacherWhereInput = {};
 
-  const count = await prisma.teacher.count
+  if(queryParams){
+    for(const [key, value] of Object.entries(queryParams)){
+      if (value !== undefined){
+        switch(key) {
+          case "classId":
+            query.lessons = {
+              some:{
+                classId:parseInt(value),
+              },
+            };
+            break;
+          case "search":
+            query.name = {contains: value, mode: "insensitive"};
+        }
+      }
+    }
+  }
 
-  // console.log(data)
+
+  const [data, count] = await prisma.$transaction([
+    prisma.teacher.findMany({
+      where:query,
+      include: {
+        subjects: true,
+        classes: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.teacher.count({where:query}),
+  ]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -132,7 +154,7 @@ const TeacherListPage = async ({searchParams}:{searchParams:{[key:string]:string
       {/* LIST */}
       <Table columns={columns} renderRow={renderRow} data={data} />
       {/* PAGINATION */}
-      <Pagination />
+      <Pagination page={p} count={count}/>
     </div>
   );
 };
