@@ -61,7 +61,7 @@ const renderRow = (item: StudentList) => (
       </div>
     </td>
     <td className="hidden md:table-cell">{item.username}</td>
-    <td className="hidden md:table-cell">{item.class.name}</td>
+    <td className="hidden md:table-cell">{item.class.name[0]}</td>
     <td className="hidden md:table-cell">{item.phone}</td>
     <td className="hidden md:table-cell">{item.address}</td>
     <td>
@@ -97,15 +97,18 @@ const StudentListPage = async ({searchParams}:{searchParams:{[key:string]:string
         switch(key) {
           case "teacherId":
             query.class = {
-              lessons:{
+              lessons: {
                 some:{
-                  teacherId:value,
+                  teacherId: value,
                 },
               }
             };
             break;
           case "search":
             query.name = {contains: value, mode: "insensitive"};
+            break;
+          default:
+            break;
         }
       }
     }
@@ -149,7 +152,7 @@ const StudentListPage = async ({searchParams}:{searchParams:{[key:string]:string
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={studentsData} />
+      <Table columns={columns} renderRow={renderRow} data={data} />
       {/* PAGINATION */}
       <Pagination page={p} count={count}/>
     </div>
