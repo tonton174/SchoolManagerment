@@ -57,7 +57,7 @@ const columns = [
     </tr>
   );
 
-const ClassListPage = async ({searchParams}:{searchParams:{[key:string]:string | undefined};}) => {
+const ClassListPage = async ({searchParams,}:{searchParams:{[key:string]:string | undefined};}) => {
 
   const {page, ...queryParams} = searchParams
 
@@ -76,6 +76,8 @@ const ClassListPage = async ({searchParams}:{searchParams:{[key:string]:string |
             break;
           case "search":
             query.name = {contains: value, mode: "insensitive"};
+            break;
+          default:
             break;
         }
       }
