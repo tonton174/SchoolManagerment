@@ -4,13 +4,16 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 import { Class, Prisma, Student } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
 type StudentList = Student & {class: Class};
 
+const { userId, sessionClaims } = await auth();
+const role = (sessionClaims?.metadata as { role?: string })?.role;
+const currentUserId = userId;
 const columns = [
   {
     header: "Info",
