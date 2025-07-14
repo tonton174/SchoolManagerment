@@ -87,3 +87,16 @@ export const examSchema = z.object({
 });
 
 export type ExamSchema = z.infer<typeof examSchema>;
+
+export const commentSchema = z.object({
+  id: z.coerce.number().optional(),
+  content: z.string().min(1, { message: "Nội dung nhận xét không được để trống!" }),
+  type: z.enum(["POSITIVE", "NEGATIVE", "NEUTRAL", "SUGGESTION"], { 
+    message: "Loại nhận xét không hợp lệ!" 
+  }),
+  teacherId: z.string().min(1, { message: "Giáo viên không được để trống!" }),
+  studentId: z.string().min(1, { message: "Học sinh không được để trống!" }),
+  lessonId: z.coerce.number().optional(),
+});
+
+export type CommentSchema = z.infer<typeof commentSchema>;

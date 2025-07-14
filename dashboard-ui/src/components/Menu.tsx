@@ -90,6 +90,18 @@ const menuItems = [
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
+      {
+        icon: "/comment.jpg",
+        label: "Nhận xét",
+        href: "/list/comments",
+        visible: ["admin", "teacher"],
+      },
+      {
+        icon: "/comment.jpg",
+        label: "Reports",
+        href: "/reports",
+        visible: ["admin", "teacher"],
+      },
     ],
   },
   {

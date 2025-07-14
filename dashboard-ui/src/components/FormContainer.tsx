@@ -15,13 +15,15 @@ export type FormContainerProps = {
     | "result"
     | "attendance"
     | "event"
-    | "announcement";
+    | "announcement"
+    | "comment";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
+  onSuccess?: () => void;
 };
 
-const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
+const FormContainer = async ({ table, type, data, id, onSuccess }: FormContainerProps) => {
   let relatedData = {};
 
   const { userId, sessionClaims } = await auth();
@@ -69,6 +71,16 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         });
         relatedData = { lessons: examLessons };
         break;
+      case "comment":
+        const commentStudents = await prisma.student.findMany({
+          include: { class: true },
+        });
+        const commentLessons = role === "teacher" ? await prisma.lesson.findMany({
+          where: { teacherId: currentUserId! },
+          include: { subject: true },
+        }) : [];
+        relatedData = { students: commentStudents, lessons: commentLessons };
+        break;
 
       default:
         break;
@@ -83,6 +95,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         data={data}
         id={id}
         relatedData={relatedData}
+        onSuccess={onSuccess}
       />
     </div>
   );

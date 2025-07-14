@@ -7,6 +7,7 @@ import {
   StudentSchema,
   SubjectSchema,
   TeacherSchema,
+  CommentSchema,
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -466,6 +467,99 @@ export const deleteExam = async (
     });
 
     // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+// Comment Actions (Lưu vào database)
+export const createComment = async (
+  currentState: CurrentState,
+  data: CommentSchema
+) => {
+  try {
+    console.log("Creating comment:", data);
+    
+    // Lưu vào database
+    const newComment = await prisma.comment.create({
+      data: {
+        content: data.content,
+        type: data.type,
+        teacherId: data.teacherId,
+        studentId: data.studentId,
+        lessonId: data.lessonId || null,
+      },
+      include: {
+        student: {
+          include: { class: true }
+        },
+        teacher: true,
+        lesson: {
+          include: { subject: true }
+        }
+      }
+    });
+    
+    console.log("Comment created in database:", newComment);
+
+    // revalidatePath("/list/comments");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateComment = async (
+  currentState: CurrentState,
+  data: CommentSchema
+) => {
+  if (!data.id) {
+    return { success: false, error: true };
+  }
+  try {
+    console.log("Updating comment:", data);
+    
+    const updatedComment = await prisma.comment.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        content: data.content,
+        type: data.type,
+        lessonId: data.lessonId || null,
+      },
+    });
+    
+    console.log("Comment updated:", updatedComment);
+
+    // revalidatePath("/list/comments");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const deleteComment = async (
+  currentState: CurrentState,
+  data: FormData
+) => {
+  const id = data.get("id") as string;
+  try {
+    console.log("Deleting comment:", id);
+    
+    await prisma.comment.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
+
+    console.log("Comment deleted successfully");
+
+    // revalidatePath("/list/comments");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

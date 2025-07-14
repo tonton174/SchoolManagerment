@@ -6,6 +6,7 @@ import {
   deleteStudent,
   deleteSubject,
   deleteTeacher,
+  deleteComment,
 } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -21,6 +22,7 @@ const deleteActionMap = {
   teacher: deleteTeacher,
   student: deleteStudent,
   exam: deleteExam,
+  comment: deleteComment,
 // TODO: OTHER DELETE ACTIONS
   parent: deleteSubject,
   lesson: deleteSubject,
@@ -51,6 +53,9 @@ const ClassForm = dynamic(() => import("./forms/ClassForm"), {
 const ExamForm = dynamic(() => import("./forms/ExamForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const CommentForm = dynamic(() => import("./forms/CommentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 // TODO: OTHER FORMS
 
 const forms: {
@@ -58,7 +63,8 @@ const forms: {
     setOpen: Dispatch<SetStateAction<boolean>>,
     type: "create" | "update",
     data?: any,
-    relatedData?: any
+    relatedData?: any,
+    onSuccess?: () => void
   ) => JSX.Element;
 } = {
   subject: (setOpen, type, data, relatedData) => (
@@ -102,6 +108,16 @@ const forms: {
     />
     // TODO OTHER LIST ITEMS
   ),
+  comment: (setOpen, type, data, relatedData, onSuccess) => (
+    <CommentForm
+      type={type}
+      data={data}
+      students={relatedData?.students || []}
+      lessons={relatedData?.lessons || []}
+      onSuccess={onSuccess}
+      setOpen={setOpen}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -110,6 +126,7 @@ const FormModal = ({
   data,
   id,
   relatedData,
+  onSuccess,
 }: FormContainerProps & { relatedData?: any }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
@@ -148,7 +165,7 @@ const FormModal = ({
         </button>
       </form>
     ) : type === "create" || type === "update" ? (
-      forms[table](setOpen, type, data, relatedData)
+      forms[table](setOpen, type, data, relatedData, onSuccess)
     ) : (
       "Form not found!"
     );
@@ -160,7 +177,15 @@ const FormModal = ({
         className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
         onClick={() => setOpen(true)}
       >
-        <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        {table === "comment" ? (
+          <Image src="/plus.png" alt="Comment" width={16} height={16} />
+        ) : type === "update" ? (
+          <Image src="/update.png" alt="Update" width={16} height={16} />
+        ) : type === "delete" ? (
+          <Image src="/delete.png" alt="Delete" width={16} height={16} />
+        ) : (
+          <Image src="/plus.png" alt="Add" width={16} height={16} />
+        )}
       </button>
       {open && (
         <div className="w-screen h-screen absolute left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
