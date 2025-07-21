@@ -56,6 +56,9 @@ const ExamForm = dynamic(() => import("./forms/ExamForm"), {
 const CommentForm = dynamic(() => import("./forms/CommentForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const LessonForm = dynamic(() => import("./forms/LessonForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 // TODO: OTHER FORMS
 
 const forms: {
@@ -114,6 +117,18 @@ const forms: {
       data={data}
       students={relatedData?.students || []}
       lessons={relatedData?.lessons || []}
+      teachers={relatedData?.teachers || []}
+      onSuccess={onSuccess}
+      setOpen={setOpen}
+    />
+  ),
+  lesson: (setOpen, type, data, relatedData, onSuccess) => (
+    <LessonForm
+      type={type}
+      data={data}
+      subjects={relatedData?.subjects || []}
+      classes={relatedData?.classes || []}
+      teachers={relatedData?.teachers || []}
       onSuccess={onSuccess}
       setOpen={setOpen}
     />
@@ -189,14 +204,8 @@ const FormModal = ({
       </button>
       {open && (
         <div className="w-screen h-screen absolute left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]">
+          <div className="bg-transparent p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]">
             <Form />
-            <div
-              className="absolute top-4 right-4 cursor-pointer"
-              onClick={() => setOpen(false)}
-            >
-              <Image src="/close.png" alt="" width={14} height={14} />
-            </div>
           </div>
         </div>
       )}

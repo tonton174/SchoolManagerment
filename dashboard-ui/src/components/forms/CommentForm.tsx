@@ -13,19 +13,23 @@ interface CommentFormProps {
   data?: CommentSchemaType;
   students: Array<{ id: string; name: string; surname: string; class: { name: string } }>;
   lessons?: Array<{ id: number; name: string; subject: { name: string } }>;
+  teachers?: Array<{ id: string; name: string; surname: string }>;
   onSuccess?: () => void; // Callback để cập nhật state
   setOpen?: Dispatch<SetStateAction<boolean>>; // Để đóng modal
 }
 
-const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: CommentFormProps) => {
+const CommentForm = ({ type, data, students, lessons, teachers, onSuccess, setOpen }: CommentFormProps) => {
   const [isPending, startTransition] = useTransition();
-  const { userId } = useAuth();
+  const { userId, sessionClaims } = useAuth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
+    watch,
   } = useForm<CommentSchemaType>({
     resolver: zodResolver(commentSchema),
     defaultValues: data || {
@@ -38,16 +42,16 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
   });
 
   const onSubmit = (formData: CommentSchemaType) => {
-    // Đảm bảo teacherId được set
-    const finalData = {
-      ...formData,
-      teacherId: userId || "",
-    };
+    let finalData = { ...formData };
+    if (role === "admin") {
+      finalData.teacherId = formData.teacherId;
+    } else {
+      finalData.teacherId = userId || "";
+    }
 
     startTransition(async () => {
       try {
         if (type === "create") {
-          // Sử dụng API route để tạo comment
           const response = await fetch('/api/comments', {
             method: 'POST',
             headers: {
@@ -58,6 +62,7 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
               type: finalData.type,
               studentId: finalData.studentId,
               lessonId: finalData.lessonId,
+              teacherId: finalData.teacherId,
             }),
           });
           if (response.ok) {
@@ -70,7 +75,6 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
             toast.error(errorData.error || "Có lỗi xảy ra!");
           }
         } else if (type === "update") {
-          // Sử dụng API route để cập nhật comment
           const response = await fetch('/api/comments', {
             method: 'PUT',
             headers: {
@@ -100,17 +104,32 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)}
+      className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative"
+    >
+      {/* Close button */}
+      {setOpen && (
+        <div className="absolute top-4 right-4">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-500 hover:text-white text-gray-500 transition-all shadow"
+          aria-label="Close"
+        >
+          <span className="text-2xl leading-none">×</span>
+        </button>
+        </div>
+      )}
       {/* Student Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Học sinh *
+        <label className="block text-base font-semibold text-gray-800 mb-2">
+          Student *
         </label>
         <select
           {...register("studentId")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
         >
-          <option value="">Chọn học sinh</option>
+          <option value="">Select student</option>
           {students.map((student) => (
             <option key={student.id} value={student.id}>
               {student.name} {student.surname} - {student.class.name}
@@ -118,21 +137,44 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
           ))}
         </select>
         {errors.studentId && (
-          <p className="text-red-500 text-sm mt-1">{errors.studentId.message}</p>
+          <p className="text-red-500 text-xs mt-1 font-medium">{errors.studentId.message}</p>
         )}
       </div>
+
+      {/* Nếu là admin thì cho chọn giáo viên */}
+      {role === "admin" && teachers && teachers.length > 0 && (
+        <div>
+          <label className="block text-base font-semibold text-gray-800 mb-2">
+            Teacher *
+          </label>
+          <select
+            {...register("teacherId")}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          >
+            <option value="">Select teacher</option>
+            {teachers.map((teacher) => (
+              <option key={teacher.id} value={teacher.id}>
+                {teacher.name} {teacher.surname}
+              </option>
+            ))}
+          </select>
+          {errors.teacherId && (
+            <p className="text-red-500 text-xs mt-1 font-medium">{errors.teacherId.message}</p>
+          )}
+        </div>
+      )}
 
       {/* Lesson Selection (Optional) */}
       {lessons && lessons.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Bài học (tùy chọn)
+          <label className="block text-base font-semibold text-gray-800 mb-2">
+            Lesson (optional)
           </label>
           <select
             {...register("lessonId")}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           >
-            <option value="">Chọn bài học</option>
+            <option value="">Select lesson</option>
             {lessons.map((lesson) => (
               <option key={lesson.id} value={lesson.id}>
                 {lesson.name} - {lesson.subject.name}
@@ -140,43 +182,43 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
             ))}
           </select>
           {errors.lessonId && (
-            <p className="text-red-500 text-sm mt-1">{errors.lessonId.message}</p>
+            <p className="text-red-500 text-xs mt-1 font-medium">{errors.lessonId.message}</p>
           )}
         </div>
       )}
 
       {/* Comment Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Loại nhận xét *
+        <label className="block text-base font-semibold text-gray-800 mb-2">
+          Comment type *
         </label>
         <select
           {...register("type")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
         >
-          <option value="POSITIVE">Tích cực</option>
-          <option value="NEGATIVE">Tiêu cực</option>
-          <option value="NEUTRAL">Trung tính</option>
-          <option value="SUGGESTION">Đề xuất</option>
+          <option value="POSITIVE">Positive</option>
+          <option value="NEGATIVE">Negative</option>
+          <option value="NEUTRAL">Neutral</option>
+          <option value="SUGGESTION">Suggestion</option>
         </select>
         {errors.type && (
-          <p className="text-red-500 text-sm mt-1">{errors.type.message}</p>
+          <p className="text-red-500 text-xs mt-1 font-medium">{errors.type.message}</p>
         )}
       </div>
 
       {/* Comment Content */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Nội dung nhận xét *
+        <label className="block text-base font-semibold text-gray-800 mb-2">
+          Comment content *
         </label>
         <textarea
           {...register("content")}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Nhập nội dung nhận xét..."
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+          placeholder="Enter comment content..."
         />
         {errors.content && (
-          <p className="text-red-500 text-sm mt-1">{errors.content.message}</p>
+          <p className="text-red-500 text-xs mt-1 font-medium">{errors.content.message}</p>
         )}
       </div>
 
@@ -185,9 +227,9 @@ const CommentForm = ({ type, data, students, lessons, onSuccess, setOpen }: Comm
         <button
           type="submit"
           disabled={isPending}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50"
         >
-          {isPending ? "Đang xử lý..." : type === "create" ? "Thêm nhận xét" : "Cập nhật nhận xét"}
+          {isPending ? "Processing..." : type === "create" ? "Add comment" : "Update comment"}
         </button>
       </div>
     </form>

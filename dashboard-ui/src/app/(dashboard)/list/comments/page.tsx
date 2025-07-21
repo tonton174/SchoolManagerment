@@ -188,7 +188,7 @@ const CommentListPage = () => {
           alt=""
           width={40}
           height={40}
-          className="w-10 h-10 rounded-full object-cover"
+          className="w-10 h-10 rounded-full object-contain"
         />
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.student.name} {item.student.surname}</h3>
@@ -202,7 +202,7 @@ const CommentListPage = () => {
             alt=""
             width={24}
             height={24}
-            className="w-6 h-6 rounded-full object-cover"
+            className="w-6 h-6 rounded-full object-contain"
           />
           <span>{item.teacher.name} {item.teacher.surname}</span>
         </div>
@@ -227,7 +227,7 @@ const CommentListPage = () => {
             <Image src="/update.png" alt="Edit" width={14} height={14} />
           </button>
           <button 
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-red-200" 
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple" 
             onClick={() => handleDelete(item.id)}
           >
             <Image src="/delete.png" alt="Delete" width={14} height={14} />
@@ -276,7 +276,7 @@ const CommentListPage = () => {
       {/* Edit Modal */}
       {showEdit && editData && (
         <div className="w-screen h-screen absolute left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]">
+          <div className="bg-transparent p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]">
             <CommentForm
               type="update"
               data={editData}
@@ -285,12 +285,6 @@ const CommentListPage = () => {
               onSuccess={handleCloseEdit}
               setOpen={handleCloseEdit}
             />
-            <div
-              className="absolute top-4 right-4 cursor-pointer"
-              onClick={handleCloseEdit}
-            >
-              <Image src="/close.png" alt="Close" width={14} height={14} />
-            </div>
           </div>
         </div>
       )}

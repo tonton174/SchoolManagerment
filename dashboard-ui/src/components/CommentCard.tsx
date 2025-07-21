@@ -59,7 +59,7 @@ const CommentCard = ({ comment }: CommentCardProps) => {
             alt=""
             width={40}
             height={40}
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-contain"
           />
           <div>
             <h4 className="font-semibold text-gray-900">

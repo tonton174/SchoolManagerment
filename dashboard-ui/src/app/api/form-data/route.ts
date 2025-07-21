@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
       case "comment":
         // Lấy danh sách học sinh dựa trên role
         let students: any[] = [];
+        let teachers: any[] = [];
         
         if (role === "admin") {
           // Admin có thể comment cho tất cả học sinh
@@ -29,6 +30,14 @@ export async function GET(request: NextRequest) {
             include: { 
               class: true 
             },
+            orderBy: [
+              { name: 'asc' },
+              { surname: 'asc' }
+            ]
+          });
+          // Lấy danh sách giáo viên cho admin chọn
+          teachers = await prisma.teacher.findMany({
+            select: { id: true, name: true, surname: true },
             orderBy: [
               { name: 'asc' },
               { surname: 'asc' }
@@ -105,7 +114,8 @@ export async function GET(request: NextRequest) {
             id: lesson.id,
             name: lesson.name,
             subject: { name: lesson.subject.name }
-          }))
+          })),
+          ...(role === "admin" ? { teachers } : {})
         };
         break;
 

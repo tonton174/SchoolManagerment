@@ -12,6 +12,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
 
+type TeacherFormState =
+  | { success: boolean; error: boolean }
+  | { success: boolean; error: { errors?: any[]; message?: string } };
+
 const TeacherForm = ({
   type,
   data,
@@ -33,12 +37,9 @@ const TeacherForm = ({
 
   const [img, setImg] = useState<any>();
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useFormState<TeacherFormState>(
     type === "create" ? createTeacher : updateTeacher,
-    {
-      success: false,
-      error: false,
-    }
+    { success: false, error: false }
   );
 
   const onSubmit = handleSubmit((data) => {
@@ -56,17 +57,53 @@ const TeacherForm = ({
     }
   }, [state, router, type, setOpen]);
 
+  // Lấy lỗi chi tiết nếu có
+  let errorMessage = "";
+  if (
+    state.error &&
+    typeof state.error === "object" &&
+    state.error !== null &&
+    "errors" in state.error &&
+    Array.isArray((state.error as any).errors) &&
+    (state.error as any).errors.length > 0
+  ) {
+    errorMessage = (state.error as any).errors
+      .map((e: any) => e.message || e.longMessage)
+      .join("; ");
+  } else if (state.error && typeof state.error === "string") {
+    errorMessage = state.error;
+  } else if (state.error && typeof state.error === "object" && "message" in state.error) {
+    errorMessage = (state.error as any).message;
+  } else if (state.error) {
+    errorMessage = "Something went wrong!";
+  }
+
+  console.log("STATE ERROR:", state.error);
+
   const { subjects } = relatedData;
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
+    <form className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative" onSubmit={onSubmit}>
+      {/* Close button */}
+      {setOpen && (
+        <div className="absolute top-4 right-4">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-500 hover:text-white text-gray-500 transition-all shadow"
+            aria-label="Close"
+          >
+            <span className="text-2xl leading-none">×</span>
+          </button>
+        </div>
+      )}
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new teacher" : "Update the teacher"}
       </h1>
       <span className="text-xs text-gray-400 font-medium">
         Authentication Information
       </span>
-      <div className="flex justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4">
         <InputField
           label="Username"
           name="username"
@@ -93,7 +130,7 @@ const TeacherForm = ({
       <span className="text-xs text-gray-400 font-medium">
         Personal Information
       </span>
-      <div className="flex justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4">
         <InputField
           label="First Name"
           name="name"
@@ -123,16 +160,9 @@ const TeacherForm = ({
           error={errors.address}
         />
         <InputField
-          label="Blood Type"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType}
-        />
-        <InputField
           label="Birthday"
           name="birthday"
-          defaultValue={data?.birthday.toISOString().split("T")[0]}
+          defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
           register={register}
           error={errors.birthday}
           type="date"
@@ -150,7 +180,7 @@ const TeacherForm = ({
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Sex</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("sex")}
             defaultValue={data?.sex}
           >
@@ -158,7 +188,7 @@ const TeacherForm = ({
             <option value="FEMALE">Female</option>
           </select>
           {errors.sex?.message && (
-            <p className="text-xs text-red-400">
+            <p className="text-red-500 text-xs mt-1 font-medium">
               {errors.sex.message.toString()}
             </p>
           )}
@@ -167,7 +197,7 @@ const TeacherForm = ({
           <label className="text-xs text-gray-500">Subjects</label>
           <select
             multiple
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full px-4 py-2 min-h-[100px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("subjects")}
             defaultValue={data?.subjects}
           >
@@ -178,7 +208,7 @@ const TeacherForm = ({
             ))}
           </select>
           {errors.subjects?.message && (
-            <p className="text-xs text-red-400">
+            <p className="text-red-500 text-xs mt-1 font-medium">
               {errors.subjects.message.toString()}
             </p>
           )}
@@ -204,9 +234,9 @@ const TeacherForm = ({
         </CldUploadWidget>
       </div>
       {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
+        <span className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</span>
       )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
+      <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50">
         {type === "create" ? "Create" : "Update"}
       </button>
     </form>

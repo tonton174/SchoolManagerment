@@ -63,6 +63,18 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { content, type, studentId, lessonId } = body;
+    let teacherId = userId;
+    if (role === "admin") {
+      teacherId = body.teacherId;
+      if (!teacherId) {
+        return NextResponse.json({ error: "Missing teacherId for admin" }, { status: 400 });
+      }
+      // Kiểm tra teacherId có tồn tại không
+      const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } });
+      if (!teacher) {
+        return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+      }
+    }
 
     // Validate required fields
     if (!content || !type || !studentId) {
@@ -111,7 +123,7 @@ export async function POST(request: NextRequest) {
       data: {
         content,
         type,
-        teacherId: userId,
+        teacherId,
         studentId,
         lessonId: lessonId || null,
       },
@@ -135,22 +147,23 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
     const body = await request.json();
     const { id, content, type, lessonId } = body;
     if (!id || !content || !type) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     
-    // Chỉ cho phép giáo viên hoặc admin sửa nhận xét của mình
+    // Chỉ cho phép giáo viên sửa comment của mình hoặc admin sửa bất kỳ comment nào
     const comment = await prisma.comment.findUnique({ where: { id } });
     if (!comment) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
-    if (comment.teacherId !== userId) {
+    if (role !== "admin" && comment.teacherId !== userId) {
       return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
     
@@ -166,22 +179,23 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
     const { searchParams } = new URL(request.url);
     const id = Number(searchParams.get("id"));
     if (!id) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
     
-    // Chỉ cho phép giáo viên hoặc admin xóa nhận xét của mình
+    // Chỉ cho phép giáo viên xóa comment của mình hoặc admin xóa bất kỳ comment nào
     const comment = await prisma.comment.findUnique({ where: { id } });
     if (!comment) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
-    if (comment.teacherId !== userId) {
+    if (role !== "admin" && comment.teacherId !== userId) {
       return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
     

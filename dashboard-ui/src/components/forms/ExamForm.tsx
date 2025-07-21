@@ -67,12 +67,25 @@ const ExamForm = ({
   const { lessons } = relatedData;
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
+    <form className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative" onSubmit={onSubmit}>
+      {/* Close button */}
+      {setOpen && (
+        <div className="absolute top-4 right-4">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-500 hover:text-white text-gray-500 transition-all shadow"
+            aria-label="Close"
+          >
+            <span className="text-2xl leading-none">×</span>
+          </button>
+        </div>
+      )}
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new exam" : "Update the exam"}
       </h1>
 
-      <div className="flex justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4">
         <InputField
           label="Exam title"
           name="title"
@@ -107,9 +120,9 @@ const ExamForm = ({
           />
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Lesson</label>
+          <label className="block text-base font-semibold text-gray-800 mb-2">Lesson</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("lessonId")}
             defaultValue={data?.teachers}
           >
@@ -120,16 +133,16 @@ const ExamForm = ({
             ))}
           </select>
           {errors.lessonId?.message && (
-            <p className="text-xs text-red-400">
+            <p className="text-red-500 text-xs mt-1 font-medium">
               {errors.lessonId.message.toString()}
             </p>
           )}
         </div>
       </div>
       {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
+        <span className="text-red-500 text-xs mt-1 font-medium">Something went wrong!</span>
       )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
+      <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50">
         {type === "create" ? "Create" : "Update"}
       </button>
     </form>

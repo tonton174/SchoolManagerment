@@ -175,9 +175,16 @@ export const createTeacher = async (
 
     // revalidatePath("/list/teachers");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    // Trả về lỗi chi tiết nếu có
+    if (err?.errors) {
+      return { success: false, error: { errors: err.errors } };
+    }
+    if (err?.message) {
+      return { success: false, error: { message: err.message } };
+    }
+    return { success: false, error: { message: err?.toString?.() || "Unknown error" } };
   }
 };
 
@@ -186,7 +193,7 @@ export const updateTeacher = async (
   data: TeacherSchema
 ) => {
   if (!data.id) {
-    return { success: false, error: true };
+    return { success: false, error: { message: "Missing teacher id" } };
   }
   try {
     const clerk = await clerkClient();
@@ -222,9 +229,16 @@ export const updateTeacher = async (
     });
     // revalidatePath("/list/teachers");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    // Trả về lỗi chi tiết nếu có
+    if (err?.errors) {
+      return { success: false, error: { errors: err.errors } };
+    }
+    if (err?.message) {
+      return { success: false, error: { message: err.message } };
+    }
+    return { success: false, error: { message: err?.toString?.() || "Unknown error" } };
   }
 };
 
