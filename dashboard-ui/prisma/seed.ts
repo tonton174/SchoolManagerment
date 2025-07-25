@@ -79,11 +79,7 @@ async function main() {
     await prisma.lesson.create({
       data: {
         name: `Lesson${i}`, 
-        day: Day[
-          Object.keys(Day)[
-            Math.floor(Math.random() * Object.keys(Day).length)
-          ] as keyof typeof Day
-        ], 
+        day: (["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"])[Math.max(0, Math.min(4, new Date().getDay() - 1))] as Day,
         startTime: new Date(new Date().setHours(new Date().getHours() + 1)), 
         endTime: new Date(new Date().setHours(new Date().getHours() + 3)), 
         subjectId: (i % 10) + 1, 
@@ -91,6 +87,26 @@ async function main() {
         teacherId: `teacher${(i % 15) + 1}`, 
       },
     });
+  }
+
+  // LESSON TEST FOR CURRENT TEACHER
+  const firstSubject = await prisma.subject.findFirst();
+  const firstClass = await prisma.class.findFirst();
+  if (firstSubject && firstClass) {
+    await prisma.lesson.create({
+      data: {
+        name: 'Test Lesson Today',
+        day: (["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"])[Math.max(0, Math.min(4, new Date().getDay() - 1))] as Day,
+        startTime: new Date(),
+        endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
+        subjectId: firstSubject.id,
+        classId: firstClass.id,
+        teacherId: 'user_30C2Rj6wJupFkoPFfobfOdgN749',
+      },
+    });
+    console.log('Seeded test lesson for teacher user_30C2Rj6wJupFkoPFfobfOdgN749');
+  } else {
+    console.log('No subject/class found, cannot seed test lesson.');
   }
 
   // PARENT

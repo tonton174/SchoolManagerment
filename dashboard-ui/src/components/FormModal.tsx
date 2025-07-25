@@ -59,6 +59,9 @@ const CommentForm = dynamic(() => import("./forms/CommentForm"), {
 const LessonForm = dynamic(() => import("./forms/LessonForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const ParentForm = dynamic(() => import("./forms/ParentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 // TODO: OTHER FORMS
 
 const forms: {
@@ -133,6 +136,14 @@ const forms: {
       setOpen={setOpen}
     />
   ),
+  parent: (setOpen, type, data, relatedData) => (
+    <ParentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -170,15 +181,18 @@ const FormModal = ({
     }, [state, router]);
 
     return type === "delete" && id ? (
-      <form action={formAction} className="p-4 flex flex-col gap-4">
-        <input type="text | number" name="id" value={id} hidden />
-        <span className="text-center font-medium">
-          All data will be lost. Are you sure you want to delete this {table}?
-        </span>
-        <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center">
-          Delete
-        </button>
-      </form>
+      <div className="relative bg-white p-8 rounded-2xl shadow-lg w-full max-w-lg mx-auto flex flex-col gap-4">
+        <button type="button" onClick={() => setOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl">×</button>
+        <form action={formAction} className="flex flex-col gap-4">
+          <input type="text | number" name="id" value={id} hidden />
+          <span className="text-center font-medium text-lg text-red-700">
+            All data will be lost. Are you sure you want to delete this {table}?
+          </span>
+          <button className="bg-gradient-to-r from-red-500 to-red-700 text-white py-2 px-6 rounded-lg font-semibold shadow hover:from-red-600 hover:to-red-800 transition-all w-max self-center">
+            Delete
+          </button>
+        </form>
+      </div>
     ) : type === "create" || type === "update" ? (
       forms[table](setOpen, type, data, relatedData, onSuccess)
     ) : (

@@ -162,7 +162,7 @@ export const createTeacher = async (
         phone: data.phone || null,
         address: data.address,
         img: data.img || null,
-        bloodType: data.bloodType,
+        bloodType: data.bloodType || "",
         sex: data.sex,
         birthday: data.birthday,
         subjects: {
@@ -176,15 +176,17 @@ export const createTeacher = async (
     // revalidatePath("/list/teachers");
     return { success: true, error: false };
   } catch (err: any) {
-    console.log(err);
-    // Trả về lỗi chi tiết nếu có
+    console.log("CREATE TEACHER ERROR:", err);
     if (err?.errors) {
       return { success: false, error: { errors: err.errors } };
     }
     if (err?.message) {
       return { success: false, error: { message: err.message } };
     }
-    return { success: false, error: { message: err?.toString?.() || "Unknown error" } };
+    if (typeof err === "string") {
+      return { success: false, error: { message: err } };
+    }
+    return { success: false, error: { message: JSON.stringify(err) } };
   }
 };
 
@@ -217,7 +219,7 @@ export const updateTeacher = async (
         phone: data.phone || null,
         address: data.address,
         img: data.img || null,
-        bloodType: data.bloodType,
+        bloodType: data.bloodType || "",
         sex: data.sex,
         birthday: data.birthday,
         subjects: {

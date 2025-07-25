@@ -39,7 +39,7 @@ export const teacherSchema = z.object({
   phone: z.string().optional(),
   address: z.string(),
   img: z.string().optional(),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
+  bloodType: z.string().optional().or(z.literal("")),
   birthday: z.coerce.date({ message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   subjects: z.array(z.string()).optional(), // subject ids

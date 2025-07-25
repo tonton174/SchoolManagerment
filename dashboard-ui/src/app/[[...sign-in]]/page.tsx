@@ -9,55 +9,64 @@ import { useEffect } from "react";
 
 const LoginPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
-
   const router = useRouter();
 
   useEffect(() => {
-    const role = user?.publicMetadata.role;
-
-    if (role) {
-      router.push(`/${role}`);
+    if (isSignedIn && user?.publicMetadata.role) {
+      router.push(`/${user.publicMetadata.role}`);
     }
-  }, [user, router]);
+  }, [isSignedIn, user, router]);
+
+  if (!isLoaded) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-lamaSky to-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-t-transparent border-blue-400 border-solid rounded-full animate-spin bg-gradient-to-tr from-blue-300 via-purple-300 to-pink-300"></div>
+          <div className="text-lg text-gray-500 font-semibold animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSignedIn) {
+    // Đã đăng nhập, đang redirect
+    return null;
+  }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-lamaSkyLight">
+    <div className="h-screen flex items-center justify-center bg-lamaSky to-gray-50">
       <SignIn.Root>
         <SignIn.Step
           name="start"
-          className="bg-white p-12 rounded-md shadow-2xl flex flex-col gap-2"
+          className="w-full max-w-[420px] md:max-w-[480px] p-12 md:p-16 rounded-3xl shadow-2xl bg-white/90 flex flex-col gap-6 border border-gray-200 backdrop-blur-md"
         >
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Image src="/logo.png" alt="" width={24} height={24} />
-            SchooLama
-          </h1>
-          <h2 className="text-gray-400">Sign in to your account</h2>
-          <Clerk.GlobalError className="text-sm text-red-400" />
+          <div className="flex flex-col items-center gap-2 mb-2">
+            <Image src="/logo.png" alt="" width={48} height={48} className="drop-shadow-xl" />
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Winki School</h1>
+            <h2 className="text-lg text-gray-400 font-medium">Sign in to your account</h2>
+          </div>
+          <Clerk.GlobalError className="text-sm text-red-400 text-center" />
           <Clerk.Field name="identifier" className="flex flex-col gap-2">
-            <Clerk.Label className="text-xs text-gray-500">
-              Username
-            </Clerk.Label>
+            <Clerk.Label className="text-sm text-gray-600 font-semibold">Username</Clerk.Label>
             <Clerk.Input
               type="text"
               required
-              className="p-2 rounded-md ring-1 ring-gray-300"
+              className="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-400 text-lg bg-gray-50 transition-all duration-200"
             />
             <Clerk.FieldError className="text-xs text-red-400" />
           </Clerk.Field>
           <Clerk.Field name="password" className="flex flex-col gap-2">
-            <Clerk.Label className="text-xs text-gray-500">
-              Password
-            </Clerk.Label>
+            <Clerk.Label className="text-sm text-gray-600 font-semibold">Password</Clerk.Label>
             <Clerk.Input
               type="password"
               required
-              className="p-2 rounded-md ring-1 ring-gray-300"
+              className="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-400 text-lg bg-gray-50 transition-all duration-200"
             />
             <Clerk.FieldError className="text-xs text-red-400" />
           </Clerk.Field>
           <SignIn.Action
             submit
-            className="bg-blue-500 text-white my-1 rounded-md text-sm p-[10px]"
+            className="bg-gradient-to-r from-black via-gray-800 to-gray-900 text-white font-semibold rounded-xl text-lg p-3 mt-2 shadow-lg hover:from-gray-900 hover:to-black transition-all duration-200 active:scale-95"
           >
             Sign In
           </SignIn.Action>

@@ -36,15 +36,19 @@ const TeacherForm = ({
   });
 
   const [img, setImg] = useState<any>();
+  const [pendingData, setPendingData] = useState<any>(null);
 
   const [state, formAction] = useFormState<TeacherFormState>(
-    type === "create" ? createTeacher : updateTeacher,
+    async (prevState) => {
+      if (!pendingData) return prevState;
+      return await (type === "create" ? createTeacher : updateTeacher)(prevState as any, pendingData);
+    },
     { success: false, error: false }
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
-    formAction({ ...data, img: img?.secure_url });
+    setPendingData({ ...data, img: img?.secure_url });
+    formAction();
   });
 
   const router = useRouter();
@@ -59,22 +63,65 @@ const TeacherForm = ({
 
   // Lấy lỗi chi tiết nếu có
   let errorMessage = "";
+  const errorObj = (state as TeacherFormState).error;
   if (
-    state.error &&
-    typeof state.error === "object" &&
-    state.error !== null &&
-    "errors" in state.error &&
-    Array.isArray((state.error as any).errors) &&
-    (state.error as any).errors.length > 0
+    errorObj &&
+    typeof errorObj === "object" &&
+    errorObj !== null &&
+    !Array.isArray(errorObj) &&
+    (errorObj as any).errors &&
+    Array.isArray((errorObj as any).errors) &&
+    (errorObj as any).errors.length > 0
   ) {
-    errorMessage = (state.error as any).errors
-      .map((e: any) => e.message || e.longMessage)
+    errorMessage = (errorObj as any).errors
+      .map((e: any) => {
+        const msg = (e.message || e.longMessage || "").toLowerCase();
+        if (msg.includes("breached password")) {
+          return "Mật khẩu này đã từng bị rò rỉ trên internet. Bạn nên chọn mật khẩu khác để bảo mật hơn.";
+        }
+        if (msg.includes("username") && msg.includes("unique")) {
+          return "Username đã được sử dụng.";
+        }
+        if (msg.includes("email") && msg.includes("unique")) {
+          return "Email đã được sử dụng.";
+        }
+        if (msg.includes("phone") && msg.includes("unique")) {
+          return "Số điện thoại đã được sử dụng.";
+        }
+        return e.message || e.longMessage;
+      })
       .join("; ");
-  } else if (state.error && typeof state.error === "string") {
-    errorMessage = state.error;
-  } else if (state.error && typeof state.error === "object" && "message" in state.error) {
-    errorMessage = (state.error as any).message;
-  } else if (state.error) {
+  } else if (typeof errorObj === "string") {
+    const msg = (errorObj as string).toLowerCase();
+    if (msg.includes("username") && msg.includes("unique")) {
+      errorMessage = "Username đã được sử dụng.";
+    } else if (msg.includes("email") && msg.includes("unique")) {
+      errorMessage = "Email đã được sử dụng.";
+    } else if (msg.includes("phone") && msg.includes("unique")) {
+      errorMessage = "Số điện thoại đã được sử dụng.";
+    } else {
+      errorMessage = errorObj as string;
+    }
+  } else if (
+    errorObj &&
+    typeof errorObj === "object" &&
+    errorObj !== null &&
+    !Array.isArray(errorObj) &&
+    (errorObj as any).message
+  ) {
+    const msg = (errorObj as any).message.toLowerCase();
+    if (msg.includes("username") && msg.includes("unique")) {
+      errorMessage = "Username đã được sử dụng.";
+    } else if (msg.includes("email") && msg.includes("unique")) {
+      errorMessage = "Email đã được sử dụng.";
+    } else if (msg.includes("phone") && msg.includes("unique")) {
+      errorMessage = "Số điện thoại đã được sử dụng.";
+    } else if (msg.includes("breached password")) {
+      errorMessage = "Mật khẩu này đã từng bị rò rỉ trên internet. Bạn nên chọn mật khẩu khác để bảo mật hơn.";
+    } else {
+      errorMessage = (errorObj as any).message;
+    }
+  } else if (errorObj) {
     errorMessage = "Something went wrong!";
   }
 

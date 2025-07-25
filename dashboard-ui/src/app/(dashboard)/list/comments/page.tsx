@@ -34,6 +34,7 @@ const CommentListPage = () => {
   const [editData, setEditData] = useState<any>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [formData, setFormData] = useState<any>(null);
+  const [search, setSearch] = useState("");
 
   // Fetch comments from API
   const fetchComments = async () => {
@@ -143,12 +144,23 @@ const CommentListPage = () => {
   // Filter theo role
   let filteredComments = comments;
   if (role === "teacher") {
-    filteredComments = comments.filter(comment => comment.teacherId === userId);
+    filteredComments = filteredComments.filter(comment => comment.teacherId === userId);
   } else if (role === "student") {
-    filteredComments = comments.filter(comment => comment.studentId === userId);
+    filteredComments = filteredComments.filter(comment => comment.studentId === userId);
   } else if (role === "parent") {
-    // Trong thực tế sẽ filter theo parent's students
-    filteredComments = comments;
+    filteredComments = filteredComments;
+  }
+
+  // Lọc theo search keyword
+  if (search.trim()) {
+    const keyword = search.trim().toLowerCase();
+    filteredComments = filteredComments.filter(comment =>
+      comment.content.toLowerCase().includes(keyword) ||
+      comment.student.name.toLowerCase().includes(keyword) ||
+      comment.student.surname.toLowerCase().includes(keyword) ||
+      comment.teacher.name.toLowerCase().includes(keyword) ||
+      comment.teacher.surname.toLowerCase().includes(keyword)
+    );
   }
 
   const getTypeColor = (type: string) => {
@@ -253,7 +265,7 @@ const CommentListPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">Student Comments</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
+          <TableSearch value={search} onChange={e => setSearch(e.target.value)} />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/filter.png" alt="" width={14} height={14} />
