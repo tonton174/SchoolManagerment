@@ -111,7 +111,7 @@ const ClassForm = ({
           />
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="block text-base font-semibold text-gray-800 mb-2">Supervisor</label>
+          <label className="text-xs text-gray-500">Supervisor</label>
           <select
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("supervisorId")}

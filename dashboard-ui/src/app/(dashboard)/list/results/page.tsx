@@ -19,6 +19,10 @@ type ResultList = {
   score: number;
   className: string;
   startTime: Date;
+  // Thêm thông tin cần thiết cho form update
+  studentId: string;
+  examId: number | null;
+  assignmentId: number | null;
 };
 
 
@@ -202,6 +206,10 @@ const renderRow = (item: ResultList) => (
       score: item.score,
       className: assessment.lesson.class.name,
       startTime: isExam ? assessment.startTime : assessment.startDate,
+      // Thêm thông tin cần thiết cho form update
+      studentId: item.studentId,
+      examId: item.examId,
+      assignmentId: item.assignmentId,
     };
   });
 

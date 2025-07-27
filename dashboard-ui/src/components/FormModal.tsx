@@ -7,6 +7,10 @@ import {
   deleteSubject,
   deleteTeacher,
   deleteComment,
+  deleteAnnouncement,
+  deleteEvent,
+  deleteResult,
+  deleteAssignment,
 } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -23,14 +27,14 @@ const deleteActionMap = {
   student: deleteStudent,
   exam: deleteExam,
   comment: deleteComment,
+  announcement: deleteAnnouncement,
+  event: deleteEvent,
+  result: deleteResult,
+  assignment: deleteAssignment,
 // TODO: OTHER DELETE ACTIONS
   parent: deleteSubject,
   lesson: deleteSubject,
-  assignment: deleteSubject,
-  result: deleteSubject,
   attendance: deleteSubject,
-  event: deleteSubject,
-  announcement: deleteSubject,
 };
 
 // USE LAZY LOADING
@@ -60,6 +64,18 @@ const LessonForm = dynamic(() => import("./forms/LessonForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ParentForm = dynamic(() => import("./forms/ParentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const EventForm = dynamic(() => import("./forms/EventForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ResultForm = dynamic(() => import("./forms/ResultForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AssignmentForm = dynamic(() => import("./forms/AssignmentForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 // TODO: OTHER FORMS
@@ -138,6 +154,38 @@ const forms: {
   ),
   parent: (setOpen, type, data, relatedData) => (
     <ParentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  announcement: (setOpen, type, data, relatedData) => (
+    <AnnouncementForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  event: (setOpen, type, data, relatedData) => (
+    <EventForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  result: (setOpen, type, data, relatedData) => (
+    <ResultForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  assignment: (setOpen, type, data, relatedData) => (
+    <AssignmentForm
       type={type}
       data={data}
       setOpen={setOpen}

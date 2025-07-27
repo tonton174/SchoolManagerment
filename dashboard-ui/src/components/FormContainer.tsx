@@ -1,6 +1,6 @@
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
-import { auth } from "@clerk/nextjs/server";
 
 export type FormContainerProps = {
   table:
@@ -86,6 +86,52 @@ const FormContainer = async ({ table, type, data, id, onSuccess }: FormContainer
         const lessonClasses = await prisma.class.findMany({ select: { id: true, name: true } });
         const lessonTeachers = await prisma.teacher.findMany({ select: { id: true, name: true, surname: true } });
         relatedData = { subjects: lessonSubjects, classes: lessonClasses, teachers: lessonTeachers };
+        break;
+      case "announcement":
+        const announcementClasses = await prisma.class.findMany({
+          select: { id: true, name: true },
+        });
+        relatedData = { classes: announcementClasses };
+        break;
+      case "event":
+        const eventClasses = await prisma.class.findMany({
+          select: { id: true, name: true },
+        });
+        relatedData = { classes: eventClasses };
+        break;
+      case "result":
+        const resultStudents = await prisma.student.findMany({
+          select: { id: true, name: true, surname: true },
+        });
+        const resultExams = await prisma.exam.findMany({
+          select: { id: true, title: true },
+        });
+        const resultAssignments = await prisma.assignment.findMany({
+          select: { id: true, title: true },
+        });
+        relatedData = { 
+          students: resultStudents, 
+          exams: resultExams, 
+          assignments: resultAssignments 
+        };
+        break;
+      case "assignment":
+        let assignmentLessonsQuery: any = {
+          include: {
+            subject: { select: { name: true } },
+            class: { select: { name: true } },
+          },
+        };
+
+        // Nếu là teacher, chỉ lấy lessons mà họ quản lý
+        if (role === "teacher") {
+          assignmentLessonsQuery.where = {
+            teacherId: currentUserId,
+          };
+        }
+
+        const assignmentLessons = await prisma.lesson.findMany(assignmentLessonsQuery);
+        relatedData = { lessons: assignmentLessons };
         break;
       default:
         break;

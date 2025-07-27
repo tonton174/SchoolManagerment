@@ -1,7 +1,8 @@
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import FilterSortDropdownButtons from "@/components/FilterSortDropdownButtons";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Prisma, Subject, Teacher } from "@prisma/client";
@@ -73,8 +74,12 @@ const AssignmentListPage = async ({
         <div className="flex items-center gap-2">
           {(role === "admin" || role === "teacher") && (
             <>
-              <FormModal table="assignment" type="update" data={item} />
-              <FormModal table="assignment" type="delete" id={item.id} />
+              <FormContainer table="assignment" type="update" data={{
+                ...item,
+                // Thêm thông tin cần thiết cho form update
+                lessonId: item.lessonId,
+              }} />
+              <FormContainer table="assignment" type="delete" id={item.id} />
             </>
           )}
         </div>
@@ -102,9 +107,22 @@ const AssignmentListPage = async ({
           case "teacherId":
             query.lesson.teacherId = value;
             break;
+          case "subjectId":
+            query.lesson.subjectId = parseInt(value);
+            break;
           case "search":
             query.lesson.subject = {
               name: { contains: value, mode: "insensitive" },
+            };
+            break;
+          case "startDate":
+            query.startDate = {
+              gte: new Date(value),
+            };
+            break;
+          case "dueDate":
+            query.dueDate = {
+              lte: new Date(value),
             };
             break;
           default:
@@ -144,6 +162,37 @@ const AssignmentListPage = async ({
       break;
   }
 
+  // SORT LOGIC
+  let orderBy: any = { dueDate: "asc" }; // default sort
+
+  const sortBy = queryParams.sortBy;
+  const sortOrder = queryParams.sortOrder || "asc";
+
+  if (sortBy) {
+    switch (sortBy) {
+      case "dueDate":
+        orderBy = { dueDate: sortOrder };
+        break;
+      case "startDate":
+        orderBy = { startDate: sortOrder };
+        break;
+      case "title":
+        orderBy = { title: sortOrder };
+        break;
+      case "subject":
+        orderBy = { lesson: { subject: { name: sortOrder } } };
+        break;
+      case "class":
+        orderBy = { lesson: { class: { name: sortOrder } } };
+        break;
+      case "teacher":
+        orderBy = { lesson: { teacher: { name: sortOrder } } };
+        break;
+      default:
+        orderBy = { dueDate: "asc" };
+    }
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.assignment.findMany({
       where: query,
@@ -156,6 +205,7 @@ const AssignmentListPage = async ({
           },
         },
       },
+      orderBy: orderBy,
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
@@ -171,16 +221,10 @@ const AssignmentListPage = async ({
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
-            {role === "admin" ||
-              (role === "teacher" && (
-                <FormModal table="assignment" type="create" />
-              ))}
+            <FilterSortDropdownButtons table="assignments" />
+            {(role === "admin" || role === "teacher") && (
+              <FormContainer table="assignment" type="create" />
+            )}
           </div>
         </div>
       </div>

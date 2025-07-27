@@ -198,8 +198,8 @@ const StudentForm = ({
           />
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="block text-base font-semibold text-gray-800 mb-2">Sex</label>
-          <select
+          <label className="text-xs text-gray-500">Sex</label>
+          <select text-gray-500
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("sex")}
             defaultValue={data?.sex}
@@ -214,7 +214,7 @@ const StudentForm = ({
           )}
         </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="block text-base font-semibold text-gray-800 mb-2">Grade</label>
+          <label className="text-xs text-gray-500">Grade</label>
           <select
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("gradeId")}

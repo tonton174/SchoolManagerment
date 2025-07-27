@@ -2,11 +2,14 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import FilterSortGenericButtons from "@/components/FilterSortGenericButtons";
+
 import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ITEM_PER_PAGE } from "@/lib/settings";
+
 import { auth } from "@clerk/nextjs/server";
 
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
@@ -18,6 +21,8 @@ const TeacherListPage = async ({
 }) => {
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = sessionClaims?.sub;
+
   const columns = [
     {
       header: "Info",
@@ -36,7 +41,7 @@ const TeacherListPage = async ({
     {
       header: "Classes",
       accessor: "classes",
-      className: "hidden md:table-cell",
+      className: "hidden lg:table-cell",
     },
     {
       header: "Phone",
@@ -93,9 +98,6 @@ const TeacherListPage = async ({
             </button>
           </Link>
           {role === "admin" && (
-            // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
-            //   <Image src="/delete.png" alt="" width={16} height={16} />
-            // </button>
             <FormContainer table="teacher" type="delete" id={item.id} />
           )}
         </div>
@@ -115,9 +117,16 @@ const TeacherListPage = async ({
       if (value !== undefined) {
         switch (key) {
           case "classId":
-            query.lessons = {
+            query.classes = {
               some: {
-                classId: parseInt(value),
+                id: parseInt(value),
+              },
+            };
+            break;
+          case "subjectId":
+            query.subjects = {
+              some: {
+                id: parseInt(value),
               },
             };
             break;
@@ -131,6 +140,69 @@ const TeacherListPage = async ({
     }
   }
 
+  // ROLE CONDITIONS
+  switch (role) {
+    case "admin":
+      break;
+    case "teacher":
+      query.id = currentUserId!;
+      break;
+    case "student":
+      // Students can see teachers who teach their class
+      query.classes = {
+        some: {
+          students: {
+            some: {
+              id: currentUserId!,
+            },
+          },
+        },
+      };
+      break;
+    case "parent":
+      // Parents can see teachers who teach their children's classes
+      query.classes = {
+        some: {
+          students: {
+            some: {
+              parentId: currentUserId!,
+            },
+          },
+        },
+      };
+      break;
+    default:
+      break;
+  }
+
+  // SORT LOGIC
+  let orderBy: any = { name: "asc" }; // default sort
+
+  const sortBy = queryParams.sortBy;
+  const sortOrder = queryParams.sortOrder || "asc";
+
+  if (sortBy) {
+    switch (sortBy) {
+      case "name":
+        orderBy = { name: sortOrder };
+        break;
+      case "username":
+        orderBy = { username: sortOrder };
+        break;
+      case "email":
+        orderBy = { email: sortOrder };
+        break;
+      case "phone":
+        orderBy = { phone: sortOrder };
+        break;
+      case "address":
+        orderBy = { address: sortOrder };
+        break;
+      default:
+        orderBy = { name: "asc" };
+    }
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
       where: query,
@@ -138,11 +210,34 @@ const TeacherListPage = async ({
         subjects: true,
         classes: true,
       },
+      orderBy: orderBy,
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.teacher.count({ where: query }),
   ]);
+
+  // Filter and sort options
+  const filterOptions = [
+    {
+      key: "classId",
+      label: "Lớp học",
+      type: "select" as const,
+    },
+    {
+      key: "subjectId",
+      label: "Môn học",
+      type: "select" as const,
+    },
+  ];
+
+  const sortOptions = [
+    { key: "name", label: "Tên giáo viên" },
+    { key: "username", label: "Mã giáo viên" },
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Số điện thoại" },
+    { key: "address", label: "Địa chỉ" },
+  ];
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -152,12 +247,11 @@ const TeacherListPage = async ({
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            <FilterSortGenericButtons 
+              table="teachers"
+              filterOptions={filterOptions}
+              sortOptions={sortOptions}
+            />
             {role === "admin" && (
               <FormContainer table="teacher" type="create" />
             )}
