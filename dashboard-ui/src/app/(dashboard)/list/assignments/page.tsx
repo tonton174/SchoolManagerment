@@ -1,7 +1,7 @@
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
+import TableSearchWrapper from "@/components/TableSearchWrapper";
 import FilterSortDropdownButtons from "@/components/FilterSortDropdownButtons";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -219,7 +219,7 @@ const AssignmentListPage = async ({
           All Assignments
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch value="" onChange={() => {}} />
+          <TableSearchWrapper />
           <div className="flex items-center gap-4 self-end">
             <FilterSortDropdownButtons table="assignments" />
             {(role === "admin" || role === "teacher") && (
