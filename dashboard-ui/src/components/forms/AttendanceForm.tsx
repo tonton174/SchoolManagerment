@@ -18,7 +18,7 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
   });
 
   const [isPending, setIsPending] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState<number>(lessons[0]?.id || "");
+  const [selectedLessonId, setSelectedLessonId] = useState<number | undefined>(lessons[0]?.id);
   const [students, setStudents] = useState(initialStudents);
   const [attendance, setAttendance] = useState<{ studentId: string; present: boolean }[]>(
     initialStudents.map(s => ({ studentId: s.id, present: true }))
@@ -27,7 +27,8 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
 
   // Load students & history khi chọn lesson
   useEffect(() => {
-    const lesson = lessons.find(l => l.id === Number(selectedLessonId));
+    if (!selectedLessonId) return;
+    const lesson = lessons.find(l => l.id === selectedLessonId);
     if (lesson) {
       setStudents(lesson.class.students);
       // Fetch lịch sử điểm danh của lesson này
@@ -60,6 +61,11 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
   };
 
   const onSubmit = async (formData: any) => {
+    if (!selectedLessonId) {
+      toast.error("Please select a lesson!");
+      return;
+    }
+    
     setIsPending(true);
     try {
       const response = await fetch("/api/attendance", {
@@ -108,7 +114,7 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
         <label className="text-xs text-gray-500 mb-2">Lesson</label>
         <select
           {...register("lessonId")}
-          value={selectedLessonId}
+          value={selectedLessonId || ""}
           onChange={e => setSelectedLessonId(Number(e.target.value))}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
         >
