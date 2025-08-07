@@ -50,7 +50,9 @@ const ClassForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    console.log("Form data being submitted:", data);
+    console.log("Grade ID:", data.gradeId);
+    console.log("Grade ID type:", typeof data.gradeId);
     formAction(data);
   });
 
@@ -115,7 +117,7 @@ const ClassForm = ({
           <select
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             {...register("supervisorId")}
-            defaultValue={data?.teachers}
+            defaultValue={data?.supervisorId}
           >
             {teachers.map(
               (teacher: { id: string; name: string; surname: string }) => (

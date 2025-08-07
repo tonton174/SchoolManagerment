@@ -90,6 +90,10 @@ export const createClass = async (
   data: ClassSchema
 ) => {
   try {
+    console.log("Creating class with data:", data);
+    console.log("Grade ID in action:", data.gradeId);
+    console.log("Grade ID type in action:", typeof data.gradeId);
+    
     await prisma.class.create({
       data,
     });
@@ -97,7 +101,7 @@ export const createClass = async (
     // revalidatePath("/list/class");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
+    console.log("Error creating class:", err);
     return { success: false, error: true };
   }
 };
