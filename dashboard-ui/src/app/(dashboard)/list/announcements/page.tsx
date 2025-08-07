@@ -1,25 +1,25 @@
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
+import TableSearchWrapper from "@/components/TableSearchWrapper";
+import FilterSortGenericButtons from "@/components/FilterSortGenericButtons";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Announcement, Class, Prisma } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
-
 type AnnouncementList = Announcement & { class: Class };
+
 const AnnouncementListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const currentUserId = userId;
-  
+
   const columns = [
     {
       header: "Title",
@@ -43,7 +43,7 @@ const AnnouncementListPage = async ({
         ]
       : []),
   ];
-  
+
   const renderRow = (item: AnnouncementList) => (
     <tr
       key={item.id}
@@ -66,6 +66,7 @@ const AnnouncementListPage = async ({
       </td>
     </tr>
   );
+
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
@@ -78,6 +79,26 @@ const AnnouncementListPage = async ({
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
+          case "classId":
+            query.classId = parseInt(value);
+            break;
+          case "startDate":
+            query.date = {
+              gte: new Date(value),
+            };
+            break;
+          case "endDate":
+            if (query.date && typeof query.date === 'object' && 'gte' in query.date) {
+              query.date = {
+                ...query.date,
+                lte: new Date(value),
+              };
+            } else {
+              query.date = {
+                lte: new Date(value),
+              };
+            }
+            break;
           case "search":
             query.title = { contains: value, mode: "insensitive" };
             break;
@@ -103,17 +124,65 @@ const AnnouncementListPage = async ({
     },
   ];
 
+  // SORT LOGIC
+  let orderBy: any = { date: "desc" }; // default sort
+
+  const sortBy = queryParams.sortBy;
+  const sortOrder = queryParams.sortOrder || "desc";
+
+  if (sortBy) {
+    switch (sortBy) {
+      case "title":
+        orderBy = { title: sortOrder };
+        break;
+      case "date":
+        orderBy = { date: sortOrder };
+        break;
+      case "class":
+        orderBy = { class: { name: sortOrder } };
+        break;
+      default:
+        orderBy = { date: "desc" };
+    }
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.announcement.findMany({
       where: query,
       include: {
         class: true,
       },
+      orderBy: orderBy,
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.announcement.count({ where: query }),
   ]);
+
+  // Filter and sort options
+  const filterOptions = [
+    {
+      key: "classId",
+      label: "Lớp học",
+      type: "select" as const,
+    },
+    {
+      key: "startDate",
+      label: "Từ ngày",
+      type: "date" as const,
+    },
+    {
+      key: "endDate",
+      label: "Đến ngày",
+      type: "date" as const,
+    },
+  ];
+
+  const sortOptions = [
+    { key: "title", label: "Tiêu đề" },
+    { key: "date", label: "Ngày thông báo" },
+    { key: "class", label: "Lớp học" },
+  ];
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -123,14 +192,13 @@ const AnnouncementListPage = async ({
           All Announcements
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
+          <TableSearchWrapper />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            <FilterSortGenericButtons 
+              table="announcements"
+              filterOptions={filterOptions}
+              sortOptions={sortOptions}
+            />
             {role === "admin" && (
               <FormContainer table="announcement" type="create" />
             )}

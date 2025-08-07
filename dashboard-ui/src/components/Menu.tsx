@@ -78,17 +78,29 @@ const menuItems = [
         href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
       },
-      {
-        icon: "/message.png",
-        label: "Messages",
-        href: "/list/messages",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
+      // {
+      //   icon: "/message.png",
+      //   label: "Messages",
+      //   href: "/list/messages",
+      //   visible: ["admin", "teacher", "student", "parent"],
+      // },
       {
         icon: "/announcement.png",
         label: "Announcements",
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/comment.jpg",
+        label: "Comments",
+        href: "/list/comments",
+        visible: ["admin", "teacher"],
+      },
+      {
+        icon: "/comment.jpg",
+        label: "Reports",
+        href: "/reports",
+        visible: ["admin", "teacher"],
       },
     ],
   },
@@ -118,8 +130,7 @@ const menuItems = [
 ];
 
 const Menu = async () => {
-
-  const user = await currentUser()
+  const user = await currentUser();
   const role = user?.publicMetadata.role as string;
   return (
     <div className="mt-4 text-sm">
@@ -136,7 +147,9 @@ const Menu = async () => {
                   key={item.label}
                   className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
                 >
-                  <Image src={item.icon} alt="" width={20} height={20} />
+                  <span className="flex-shrink-0 min-w-[24px] min-h-[24px] flex items-center justify-center">
+                    <Image src={item.icon} alt="" width={24} height={24} />
+                  </span>
                   <span className="hidden lg:block">{item.label}</span>
                 </Link>
               );

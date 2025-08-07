@@ -1,7 +1,8 @@
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
+import TableSearchWrapper from "@/components/TableSearchWrapper";
+import FilterSortGenericButtons from "@/components/FilterSortGenericButtons";
 
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -20,6 +21,7 @@ const StudentListPage = async ({
 }) => {
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = sessionClaims?.sub;
 
 
 const columns = [
@@ -68,7 +70,7 @@ const columns = [
           alt=""
           width={40}
           height={40}
-          className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
+          className="md:hidden xl:block w-10 h-10 rounded-full object-contain"
         />
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
@@ -87,9 +89,6 @@ const columns = [
             </button>
           </Link>
           {role === "admin" && (
-            // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
-            //   <Image src="/delete.png" alt="" width={16} height={16} />
-            // </button>
             <FormContainer table="student" type="delete" id={item.id} />
           )}
         </div>
@@ -109,14 +108,8 @@ const columns = [
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-          case "teacherId":
-            query.class = {
-              lessons: {
-                some: {
-                  teacherId: value,
-                },
-              },
-            };
+          case "classId":
+            query.classId = parseInt(value);
             break;
           case "search":
             query.name = { contains: value, mode: "insensitive" };
@@ -128,17 +121,89 @@ const columns = [
     }
   }
 
+  // ROLE CONDITIONS
+  switch (role) {
+    case "admin":
+      break;
+    case "teacher":
+      // Teacher chỉ thấy students trong lớp mà họ dạy
+      query.class = {
+        lessons: {
+          some: {
+            teacherId: currentUserId!,
+          },
+        },
+      };
+      break;
+    case "student":
+      // Student chỉ thấy chính mình
+      query.id = currentUserId!;
+      break;
+    case "parent":
+      // Parent chỉ thấy con của mình
+      query.parentId = currentUserId!;
+      break;
+    default:
+      break;
+  }
+
+  // SORT LOGIC
+  let orderBy: any = { name: "asc" }; // default sort
+
+  const sortBy = queryParams.sortBy;
+  const sortOrder = queryParams.sortOrder || "asc";
+
+  if (sortBy) {
+    switch (sortBy) {
+      case "name":
+        orderBy = { name: sortOrder };
+        break;
+      case "username":
+        orderBy = { username: sortOrder };
+        break;
+      case "class":
+        orderBy = { class: { name: sortOrder } };
+        break;
+      case "phone":
+        orderBy = { phone: sortOrder };
+        break;
+      case "address":
+        orderBy = { address: sortOrder };
+        break;
+      default:
+        orderBy = { name: "asc" };
+    }
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
       where: query,
       include: {
         class: true,
       },
+      orderBy: orderBy,
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.student.count({ where: query }),
   ]);
+
+  // Filter and sort options
+  const filterOptions = [
+    {
+      key: "classId",
+      label: "Lớp học",
+      type: "select" as const,
+    },
+  ];
+
+  const sortOptions = [
+    { key: "name", label: "Tên học sinh" },
+    { key: "username", label: "Mã học sinh" },
+    { key: "class", label: "Lớp học" },
+    { key: "phone", label: "Số điện thoại" },
+    { key: "address", label: "Địa chỉ" },
+  ];
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -146,18 +211,14 @@ const columns = [
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">All Students</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
+          <TableSearchWrapper />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            <FilterSortGenericButtons 
+              table="students"
+              filterOptions={filterOptions}
+              sortOptions={sortOptions}
+            />
             {role === "admin" && (
-              // <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              //   <Image src="/plus.png" alt="" width={14} height={14} />
-              // </button>
               <FormContainer table="student" type="create" />
             )}
           </div>

@@ -1,7 +1,7 @@
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
+import TableSearchWrapper from "@/components/TableSearchWrapper";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma } from "@prisma/client";
@@ -19,6 +19,10 @@ type ResultList = {
   score: number;
   className: string;
   startTime: Date;
+  // Thêm thông tin cần thiết cho form update
+  studentId: string;
+  examId: number | null;
+  assignmentId: number | null;
 };
 
 
@@ -91,8 +95,8 @@ const renderRow = (item: ResultList) => (
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
           <>
-            <FormModal table="result" type="update" data={item} />
-            <FormModal table="result" type="delete" id={item.id} />
+            <FormContainer table="result" type="update" data={item} />
+            <FormContainer table="result" type="delete" id={item.id} />
           </>
         )}
       </div>
@@ -202,6 +206,10 @@ const renderRow = (item: ResultList) => (
       score: item.score,
       className: assessment.lesson.class.name,
       startTime: isExam ? assessment.startTime : assessment.startDate,
+      // Thêm thông tin cần thiết cho form update
+      studentId: item.studentId,
+      examId: item.examId,
+      assignmentId: item.assignmentId,
     };
   });
 
@@ -211,7 +219,7 @@ const renderRow = (item: ResultList) => (
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">All Results</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
+          <TableSearchWrapper />
           <div className="flex items-center gap-4 self-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/filter.png" alt="" width={14} height={14} />
@@ -220,7 +228,7 @@ const renderRow = (item: ResultList) => (
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {(role === "admin" || role === "teacher") && (
-              <FormModal table="result" type="create" />
+              <FormContainer table="result" type="create" />
             )}
           </div>
         </div>
