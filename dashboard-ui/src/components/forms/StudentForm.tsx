@@ -34,8 +34,10 @@ const StudentForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<StudentSchema | StudentBasicUpdateSchema>({
-    resolver: zodResolver(type === "create" ? studentSchema : studentBasicUpdateSchema),
+  } = useForm<any>({
+    resolver: zodResolver(
+      (type === "create" ? studentSchema : studentBasicUpdateSchema) as any
+    ) as any,
   });
 
   const [img, setImg] = useState<any>();
