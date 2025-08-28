@@ -89,9 +89,9 @@ export async function GET(request: NextRequest) {
       return {
         studentId: student.id,
         studentName: `${student.name} ${student.surname}`,
-        parentName: `${student.parent.name} ${student.parent.surname}`,
-        parentPhone: student.parent.phone,
-        parentEmail: student.parent.email,
+        parentName: `${student.parent?.name} ${student.parent?.surname}`,
+        parentPhone: student.parent?.phone,
+        parentEmail: student.parent?.email,
         comments: comments
       };
     });
