@@ -48,11 +48,7 @@ const StudentForm = ({
     error: false,
   });
 
-  const onSubmit = handleSubmit((data) => {
-    console.log("hello");
-    console.log(data);
-    formAction({ ...data, img: img?.secure_url });
-  });
+  // Submit sẽ dùng form action trực tiếp, img được truyền qua hidden input
 
   const router = useRouter();
 
@@ -67,7 +63,7 @@ const StudentForm = ({
   const { grades, classes, parents, canEditClass } = relatedData;
 
   return (
-    <form className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative" onSubmit={onSubmit}>
+    <form action={formAction} className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative">
       {/* Close button */}
       {setOpen && (
         <div className="absolute top-4 right-4">
@@ -135,6 +131,7 @@ const StudentForm = ({
           );
         }}
       </CldUploadWidget>
+      <input type="hidden" name="img" value={img?.secure_url || ""} />
       <div className="flex flex-wrap gap-4">
         <InputField
           label="First Name"
