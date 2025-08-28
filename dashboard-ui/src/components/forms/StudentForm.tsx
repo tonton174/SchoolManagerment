@@ -138,21 +138,21 @@ const StudentForm = ({
           name="name"
           defaultValue={data?.name}
           register={register}
-          error={errors.name}
+          error={errors.name as any}
         />
         <InputField
           label="Last Name"
           name="surname"
           defaultValue={data?.surname}
           register={register}
-          error={errors.surname}
+          error={errors.surname as any}
         />
         <InputField
           label="Address"
           name="address"
           defaultValue={data?.address}
           register={register}
-          error={errors.address}
+          error={errors.address as any}
         />
         {/* Removed Phone and Blood Type for student creation */}
         <InputField
@@ -160,7 +160,7 @@ const StudentForm = ({
           name="birthday"
           defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
           register={register}
-          error={errors.birthday}
+          error={errors.birthday as any}
           type="date"
         />
         <div className="flex flex-col gap-2 w-full md:w-1/4">
@@ -189,7 +189,7 @@ const StudentForm = ({
             name="id"
             defaultValue={data?.id}
             register={register}
-            error={errors?.id}
+            error={errors?.id as any}
             hidden
           />
         )}
