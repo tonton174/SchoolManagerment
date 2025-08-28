@@ -42,13 +42,11 @@ const StudentForm = ({
 
   const [img, setImg] = useState<any>();
 
-  const [state, formAction] = useFormState(
-    type === "create" ? createStudent : updateStudentBasic,
-    {
-      success: false,
-      error: false,
-    }
-  );
+  const actionHandler: any = type === "create" ? (createStudent as any) : (updateStudentBasic as any);
+  const [state, formAction] = useFormState(actionHandler, {
+    success: false,
+    error: false,
+  });
 
   const onSubmit = handleSubmit((data) => {
     console.log("hello");
