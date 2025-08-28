@@ -84,11 +84,11 @@ export async function GET(request: NextRequest) {
         .join('; ');
 
       return {
-        'Số điện thoại phụ huynh': student.parent.phone || 'Chưa có thông tin',
+        'Số điện thoại phụ huynh': student.parent?.phone || 'Chưa có thông tin',
         'STT': index + 1,
         'Họ và tên học sinh': `${student.name} ${student.surname}`,
-        'Họ và tên phụ huynh': `${student.parent.name} ${student.parent.surname}`,
-        'Email phụ huynh': student.parent.email || '',
+        'Họ và tên phụ huynh': student.parent ? `${student.parent.name} ${student.parent.surname}` : 'Chưa có thông tin',
+        'Email phụ huynh': student.parent?.email || '',
         'Nhận xét của giáo viên': commentsText || 'Chưa có nhận xét'
       };
     });
