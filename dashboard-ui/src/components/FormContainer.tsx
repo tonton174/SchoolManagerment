@@ -60,7 +60,10 @@ const FormContainer = async ({ table, type, data, id, onSuccess }: FormContainer
         const studentClasses = await prisma.class.findMany({
           include: { _count: { select: { students: true } } },
         });
-        relatedData = { classes: studentClasses, grades: studentGrades };
+        const studentParents = await prisma.parent.findMany({
+          select: { id: true, name: true, surname: true },
+        });
+        relatedData = { classes: studentClasses, grades: studentGrades, parents: studentParents, canEditClass: role === "admin" };
         break;
       case "exam":
         const examLessons = await prisma.lesson.findMany({

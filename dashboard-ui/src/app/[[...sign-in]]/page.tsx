@@ -42,7 +42,7 @@ const LoginPage = () => {
         >
           <div className="flex flex-col items-center gap-2 mb-2">
             <Image src="/logo.png" alt="" width={48} height={48} className="drop-shadow-xl" />
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Winki School</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">WiGo English</h1>
             <h2 className="text-lg text-gray-400 font-medium">Sign in to your account</h2>
           </div>
           <Clerk.GlobalError className="text-sm text-red-400 text-center" />

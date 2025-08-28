@@ -261,7 +261,7 @@ const TeacherForm = ({
           )}
         </div>
         <CldUploadWidget
-          uploadPreset="winki_school"
+          uploadPreset="wigo_english"
           onSuccess={(result, { widget }) => {
             setImg(result.info);
             widget.close();

@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Winki School Management Dashboard",
+  title: "WiGo English Management Dashboard",
   description: "Next.js School Management System",
 };
 

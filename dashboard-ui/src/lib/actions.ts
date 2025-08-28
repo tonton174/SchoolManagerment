@@ -12,8 +12,10 @@ import {
   EventSchema,
   ResultSchema,
   AssignmentSchema,
+  StudentBasicUpdateSchema,
 } from "./formValidationSchemas";
 import prisma from "./prisma";
+import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
 
 type CurrentState = { success: boolean; error: boolean };
@@ -291,32 +293,81 @@ export const createStudent = async (
     }
 
     const clerk = await clerkClient();
-    const user = await clerk.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata:{role:"student"}
-    });
 
-    await prisma.student.create({
-      data: {
-        id: user.id,
+    let clerkUserId: string | null = null;
+    let createdNewClerkUser = false;
+
+    try {
+      const user = await clerk.users.createUser({
         username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        gradeId: data.gradeId,
-        classId: data.classId,
-        parentId: data.parentId,
-      },
-    });
+        password: data.password,
+        firstName: data.name,
+        lastName: data.surname,
+        publicMetadata: { role: "student" },
+      });
+      clerkUserId = user.id;
+      createdNewClerkUser = true;
+    } catch (err: any) {
+      // If username already exists in Clerk, try to reuse that user
+      const isUsernameTaken = err?.status === 422 && Array.isArray(err?.errors) && err.errors.some((e: any) => e?.code === "form_identifier_exists");
+      if (!isUsernameTaken) {
+        throw err;
+      }
+      // Try to find existing user by username
+      try {
+        // Prefer exact username filter if available; fallback to query
+        const existingUsersByUsername = await clerk.users.getUserList({ username: [data.username] } as any);
+        const existingUser = (existingUsersByUsername as any)?.data?.[0] || (Array.isArray(existingUsersByUsername) ? existingUsersByUsername[0] : null);
+        if (!existingUser) {
+          const byQuery = await clerk.users.getUserList({ query: data.username } as any);
+          const matched = (byQuery as any)?.data?.find((u: any) => u?.username === data.username) || (Array.isArray(byQuery) ? byQuery.find((u: any) => u?.username === data.username) : null);
+          if (!matched) {
+            throw err;
+          }
+          clerkUserId = matched.id;
+        } else {
+          clerkUserId = existingUser.id;
+        }
+        // Ensure metadata and names are up to date; password update if provided
+        await clerk.users.updateUser(clerkUserId!, {
+          firstName: data.name,
+          lastName: data.surname,
+          ...(data.password ? { password: data.password } : {}),
+          publicMetadata: { role: "student" },
+        } as any);
+      } catch (innerErr) {
+        throw err; // keep original 422 error if we can't resolve
+      }
+    }
+
+    try {
+      await prisma.student.create({
+        data: {
+          id: clerkUserId!,
+          username: data.username,
+          name: data.name,
+          surname: data.surname,
+          email: data.email || null,
+          // phone removed from student form
+          address: data.address,
+          img: data.img || null,
+          // bloodType removed from student form
+          sex: data.sex,
+          birthday: data.birthday,
+          gradeId: data.gradeId,
+          classId: data.classId,
+          ...(data.parentId ? { parentId: data.parentId } : {}),
+        },
+      });
+    } catch (dbErr) {
+      // Compensation: if we created a new Clerk user in this call, delete it to avoid orphan user
+      if (createdNewClerkUser && clerkUserId) {
+        try {
+          await clerk.users.deleteUser(clerkUserId);
+        } catch {}
+      }
+      throw dbErr;
+    }
 
     // revalidatePath("/list/students");
     return { success: true, error: false };
@@ -352,15 +403,15 @@ export const updateStudent = async (
         name: data.name,
         surname: data.surname,
         email: data.email || null,
-        phone: data.phone || null,
+        // phone removed from student form
         address: data.address,
         img: data.img || null,
-        bloodType: data.bloodType,
+        // bloodType removed from student form
         sex: data.sex,
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        ...(data.parentId ? { parentId: data.parentId } : { parentId: null }),
       },
     });
     // revalidatePath("/list/students");
@@ -387,6 +438,51 @@ export const deleteStudent = async (
     });
 
     // revalidatePath("/list/students");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateStudentBasic = async (
+  currentState: CurrentState,
+  data: StudentBasicUpdateSchema
+) => {
+  try {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    // Load current student to evaluate permissions
+    const currentStudent = await prisma.student.findUnique({
+      where: { id: data.id },
+      select: { id: true, classId: true },
+    });
+    if (!currentStudent) return { success: false, error: true };
+
+    // If teacher, ensure they teach this student's class and cannot change classId
+    if (role !== "admin") {
+      if (!userId) return { success: false, error: true };
+      const teachesThisClass = await prisma.lesson.findFirst({
+        where: { classId: currentStudent.classId, teacherId: userId },
+        select: { id: true },
+      });
+      if (!teachesThisClass) return { success: false, error: true };
+    }
+
+    await prisma.student.update({
+      where: { id: data.id },
+      data: {
+        name: data.name,
+        ...(data.surname !== undefined ? { surname: data.surname } : {}),
+        birthday: data.birthday,
+        // Only admin can move class
+        ...((sessionClaims?.metadata as { role?: string })?.role === "admin" && data.classId
+          ? { classId: data.classId }
+          : {}),
+        ...(data.parentId ? { parentId: data.parentId } : { parentId: null }),
+      },
+    });
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

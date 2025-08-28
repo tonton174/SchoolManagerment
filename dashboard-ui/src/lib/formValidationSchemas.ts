@@ -65,18 +65,28 @@ export const studentSchema = z.object({
     .email({ message: "Invalid email address!" })
     .optional()
     .or(z.literal("")),
-  phone: z.string().optional(),
   address: z.string(),
   img: z.string().optional(),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
   birthday: z.coerce.date({ message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
-  parentId: z.string().min(1, { message: "Parent Id is required!" }),
+  parentId: z.string().optional().or(z.literal("")),
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;
+
+// Quick edit schema for student basic info
+export const studentBasicUpdateSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, { message: "First name is required!" }),
+  surname: z.string().min(1, { message: "Last name is required!" }).optional().or(z.literal("")),
+  birthday: z.coerce.date({ message: "Birthday is required!" }),
+  classId: z.coerce.number().optional(), // only for admin
+  parentId: z.string().optional().or(z.literal("")),
+});
+
+export type StudentBasicUpdateSchema = z.infer<typeof studentBasicUpdateSchema>;
 
 export const examSchema = z.object({
   id: z.coerce.number().optional(),

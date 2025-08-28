@@ -1,4 +1,4 @@
-# Winki School Management Dashboard
+# WiGo English Management Dashboard
 
 ## Getting Started
 

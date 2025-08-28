@@ -8,16 +8,13 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   studentSchema,
   StudentSchema,
+  studentBasicUpdateSchema,
+  StudentBasicUpdateSchema,
   teacherSchema,
   TeacherSchema,
 } from "@/lib/formValidationSchemas";
 import { useFormState } from "react-dom";
-import {
-  createStudent,
-  createTeacher,
-  updateStudent,
-  updateTeacher,
-} from "@/lib/actions";
+import { createStudent, updateStudent, updateStudentBasic } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
@@ -37,14 +34,14 @@ const StudentForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<StudentSchema>({
-    resolver: zodResolver(studentSchema),
+  } = useForm<StudentSchema | StudentBasicUpdateSchema>({
+    resolver: zodResolver(type === "create" ? studentSchema : studentBasicUpdateSchema),
   });
 
   const [img, setImg] = useState<any>();
 
   const [state, formAction] = useFormState(
-    type === "create" ? createStudent : updateStudent,
+    type === "create" ? createStudent : updateStudentBasic,
     {
       success: false,
       error: false,
@@ -67,7 +64,7 @@ const StudentForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  const { grades, classes } = relatedData;
+  const { grades, classes, parents, canEditClass } = relatedData;
 
   return (
     <form className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative" onSubmit={onSubmit}>
@@ -87,33 +84,35 @@ const StudentForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new student" : "Update the student"}
       </h1>
-      <span className="text-xs text-gray-400 font-medium">
-        Authentication Information
-      </span>
-      <div className="flex flex-wrap gap-4">
-        <InputField
-          label="Username"
-          name="username"
-          defaultValue={data?.username}
-          register={register}
-          error={errors?.username}
-        />
-        <InputField
-          label="Email"
-          name="email"
-          defaultValue={data?.email}
-          register={register}
-          error={errors?.email}
-        />
-        <InputField
-          label="Password"
-          name="password"
-          type="password"
-          defaultValue={data?.password}
-          register={register}
-          error={errors?.password}
-        />
-      </div>
+      {type === "create" && (
+        <span className="text-xs text-gray-400 font-medium">Authentication Information</span>
+      )}
+      {type === "create" && (
+        <div className="flex flex-wrap gap-4">
+          <InputField
+            label="Username"
+            name="username"
+            defaultValue={data?.username}
+            register={register}
+            error={errors?.username as any}
+          />
+          <InputField
+            label="Email"
+            name="email"
+            defaultValue={data?.email}
+            register={register}
+            error={errors?.email as any}
+          />
+          <InputField
+            label="Password"
+            name="password"
+            type="password"
+            defaultValue={data?.password}
+            register={register}
+            error={errors?.password as any}
+          />
+        </div>
+      )}
       <span className="text-xs text-gray-400 font-medium">
         Personal Information
       </span>
@@ -152,26 +151,13 @@ const StudentForm = ({
           error={errors.surname}
         />
         <InputField
-          label="Phone"
-          name="phone"
-          defaultValue={data?.phone}
-          register={register}
-          error={errors.phone}
-        />
-        <InputField
           label="Address"
           name="address"
           defaultValue={data?.address}
           register={register}
           error={errors.address}
         />
-        <InputField
-          label="Blood Type"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType}
-        />
+        {/* Removed Phone and Blood Type for student creation */}
         <InputField
           label="Birthday"
           name="birthday"
@@ -180,13 +166,26 @@ const StudentForm = ({
           error={errors.birthday}
           type="date"
         />
-        <InputField
-          label="Parent Id"
-          name="parentId"
-          defaultValue={data?.parentId}
-          register={register}
-          error={errors.parentId}
-        />
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Parent (optional)</label>
+          <select
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            {...register("parentId" as any)}
+            defaultValue={data?.parentId || ""}
+          >
+            <option value="">-- No parent --</option>
+            {parents?.map((p: { id: string; name: string; surname: string }) => (
+              <option value={p.id} key={p.id}>
+                {p.name} {p.surname}
+              </option>
+            ))}
+          </select>
+          {(errors as any).parentId?.message && (
+            <p className="text-red-500 text-xs mt-1 font-medium">
+              {(errors as any).parentId.message.toString()}
+            </p>
+          )}
+        </div>
         {data && (
           <InputField
             label="Id"
@@ -217,8 +216,9 @@ const StudentForm = ({
           <label className="text-xs text-gray-500">Grade</label>
           <select
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            {...register("gradeId")}
+            {...register("gradeId" as any)}
             defaultValue={data?.gradeId}
+            disabled={type !== "create"}
           >
             {grades.map((grade: { id: number; level: number }) => (
               <option value={grade.id} key={grade.id}>
@@ -226,18 +226,19 @@ const StudentForm = ({
               </option>
             ))}
           </select>
-          {errors.gradeId?.message && (
+          {(errors as any).gradeId?.message && (
             <p className="text-red-500 text-xs mt-1 font-medium">
-              {errors.gradeId.message.toString()}
+              {(errors as any).gradeId.message.toString()}
             </p>
           )}
         </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="block text-base font-semibold text-gray-800 mb-2">Class</label>
+          <label className="text-xs text-gray-500">Class</label>
           <select
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            {...register("classId")}
+            {...register("classId" as any)}
             defaultValue={data?.classId}
+            disabled={!canEditClass && type !== "create"}
           >
             {classes.map(
               (classItem: {
@@ -254,9 +255,9 @@ const StudentForm = ({
               )
             )}
           </select>
-          {errors.classId?.message && (
+          {(errors as any).classId?.message && (
             <p className="text-red-500 text-xs mt-1 font-medium">
-              {errors.classId.message.toString()}
+              {(errors as any).classId.message.toString()}
             </p>
           )}
         </div>
