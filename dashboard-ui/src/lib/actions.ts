@@ -17,6 +17,7 @@ import {
 import prisma from "./prisma";
 import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { randomUUID } from "crypto";
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -35,6 +36,36 @@ export const createSubject = async (
     });
 
     // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const linkStudentToClerk = async (
+  currentState: CurrentState,
+  data: { studentId: string; password?: string }
+) => {
+  try {
+    const student = await prisma.student.findUnique({ where: { id: data.studentId } });
+    if (!student) return { success: false, error: true };
+    if (student.authUserId) return { success: true, error: false }; // already linked
+
+    const clerk = await clerkClient();
+    const user = await clerk.users.createUser({
+      username: student.username,
+      ...(data.password ? { password: data.password } : {}),
+      firstName: student.name,
+      lastName: student.surname,
+      publicMetadata: { role: "student" },
+    } as any);
+
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { authUserId: user.id },
+    });
+
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -283,97 +314,84 @@ export const createStudent = async (
 ) => {
   console.log(data);
   try {
+    // Validate required fields
+    if (!data.classId || !data.gradeId || !data.name) {
+      return { 
+        success: false, 
+        error: { message: "Missing required fields: classId, gradeId, name" } 
+      };
+    }
+
+    // Generate username if not provided
+    let username = data.username;
+    if (!username || username.trim() === '') {
+      username = `${data.name.toLowerCase()}${data.surname.toLowerCase()}${Math.floor(Math.random() * 1000)}`;
+    }
+
     const classItem = await prisma.class.findUnique({
       where: { id: data.classId },
       include: { _count: { select: { students: true } } },
     });
 
-    if (classItem && classItem.capacity === classItem._count.students) {
-      return { success: false, error: true };
+    if (!classItem) {
+      return { 
+        success: false, 
+        error: { message: "Class not found" } 
+      };
     }
 
-    const clerk = await clerkClient();
-
-    let clerkUserId: string | null = null;
-    let createdNewClerkUser = false;
-
-    try {
-      const user = await clerk.users.createUser({
-        username: data.username,
-        password: data.password,
-        firstName: data.name,
-        lastName: data.surname,
-        publicMetadata: { role: "student" },
-      });
-      clerkUserId = user.id;
-      createdNewClerkUser = true;
-    } catch (err: any) {
-      // If username already exists in Clerk, try to reuse that user
-      const isUsernameTaken = err?.status === 422 && Array.isArray(err?.errors) && err.errors.some((e: any) => e?.code === "form_identifier_exists");
-      if (!isUsernameTaken) {
-        throw err;
-      }
-      // Try to find existing user by username
-      try {
-        // Prefer exact username filter if available; fallback to query
-        const existingUsersByUsername = await clerk.users.getUserList({ username: [data.username] } as any);
-        const existingUser = (existingUsersByUsername as any)?.data?.[0] || (Array.isArray(existingUsersByUsername) ? existingUsersByUsername[0] : null);
-        if (!existingUser) {
-          const byQuery = await clerk.users.getUserList({ query: data.username } as any);
-          const matched = (byQuery as any)?.data?.find((u: any) => u?.username === data.username) || (Array.isArray(byQuery) ? byQuery.find((u: any) => u?.username === data.username) : null);
-          if (!matched) {
-            throw err;
-          }
-          clerkUserId = matched.id;
-        } else {
-          clerkUserId = existingUser.id;
-        }
-        // Ensure metadata and names are up to date; password update if provided
-        await clerk.users.updateUser(clerkUserId!, {
-          firstName: data.name,
-          lastName: data.surname,
-          ...(data.password ? { password: data.password } : {}),
-          publicMetadata: { role: "student" },
-        } as any);
-      } catch (innerErr) {
-        throw err; // keep original 422 error if we can't resolve
-      }
+    if (classItem.capacity === classItem._count.students) {
+      return { 
+        success: false, 
+        error: { message: "Class is full" } 
+      };
     }
 
-    try {
-      await prisma.student.create({
-        data: {
-          id: clerkUserId!,
-          username: data.username,
-          name: data.name,
-          surname: data.surname,
-          email: data.email || null,
-          // phone removed from student form
-          address: data.address,
-          img: data.img || null,
-          // bloodType removed from student form
-          sex: data.sex,
-          birthday: data.birthday,
-          gradeId: data.gradeId,
-          classId: data.classId,
-          ...(data.parentId ? { parentId: data.parentId } : {}),
-        },
-      });
-    } catch (dbErr) {
-      // Compensation: if we created a new Clerk user in this call, delete it to avoid orphan user
-      if (createdNewClerkUser && clerkUserId) {
-        try {
-          await clerk.users.deleteUser(clerkUserId);
-        } catch {}
-      }
-      throw dbErr;
-    }
+    // Create student WITHOUT Clerk user (use internal UUID as primary id)
+    const studentId = randomUUID();
+    console.log("Creating student with data:", {
+      id: studentId,
+      authUserId: null,
+      username: username,
+      name: data.name,
+      surname: data.surname,
+      email: data.email || null,
+      address: data.address,
+      img: data.img || null,
+      sex: data.sex,
+      birthday: data.birthday,
+      gradeId: data.gradeId,
+      classId: data.classId,
+      parentId: data.parentId || null,
+    });
 
+    const newStudent = await prisma.student.create({
+      data: {
+        id: studentId,
+        authUserId: null,
+        username: username,
+        name: data.name,
+        surname: data.surname,
+        email: data.email || null,
+        address: data.address,
+        img: data.img || null,
+        sex: data.sex,
+        birthday: data.birthday,
+        gradeId: data.gradeId,
+        classId: data.classId,
+        ...(data.parentId ? { parentId: data.parentId } : {}),
+      },
+    });
+
+    console.log("Student created successfully:", newStudent);
     // revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { 
+      success: false, 
+      error: { message: err instanceof Error ? err.message : "Unknown error occurred" } 
+    };
   }
 };
 
@@ -385,20 +403,11 @@ export const updateStudent = async (
     return { success: false, error: true };
   }
   try {
-    const clerk = await clerkClient();
-    const user = await clerk.users.updateUser(data.id, {
-      username: data.username,
-      ...(data.password !== "" && { password: data.password }),
-      firstName: data.name,
-      lastName: data.surname,
-    });
-
     await prisma.student.update({
       where: {
         id: data.id,
       },
       data: {
-        ...(data.password !== "" && { password: data.password }),
         username: data.username,
         name: data.name,
         surname: data.surname,
@@ -428,9 +437,6 @@ export const deleteStudent = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    const clerk = await clerkClient();
-    await clerk.users.deleteUser(id);
-
     await prisma.student.delete({
       where: {
         id: id,

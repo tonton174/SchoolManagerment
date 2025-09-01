@@ -3,6 +3,7 @@ import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
+import CreateAccountButton from "@/components/CreateAccountButton";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { Class, Student } from "@prisma/client";
@@ -19,11 +20,7 @@ const SingleStudentPage = async ({
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-  const student:
-    | (Student & {
-        class: Class & { _count: { lessons: number } };
-      })
-    | null = await prisma.student.findUnique({
+  const student = await prisma.student.findUnique({
     where: { id },
     include: {
       class: { include: { _count: { select: { lessons: true } } } },
@@ -56,9 +53,26 @@ const SingleStudentPage = async ({
                 <h1 className="text-xl font-semibold">
                   {student.name + " " + student.surname}
                 </h1>
-                {(role === "admin" || role === "teacher") && (
-                  <FormContainer table="student" type="update" data={student} />
-                )}
+                <div className="flex items-center gap-2">
+                  {(role === "admin" || role === "teacher") && (
+                    <FormContainer table="student" type="update" data={student} />
+                  )}
+                  {/* Account Status & Create Account Button */}
+                  <div className="flex items-center gap-2">
+                    {student.authUserId ? (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        ✓ Có tài khoản
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                        ⚠ Chưa có tài khoản
+                      </span>
+                    )}
+                    {!student.authUserId && (role === "admin" || role === "teacher") && (
+                      <CreateAccountButton studentId={student.id} />
+                    )}
+                  </div>
+                </div>
               </div>
               <p className="text-sm text-gray-500">
                 Lorem ipsum, dolor sit amet consectetur adipisicing elit.

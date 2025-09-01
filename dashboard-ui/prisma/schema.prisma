@@ -14,6 +14,7 @@ model Admin {
 
 model Student {
   id          String       @id
+  authUserId  String?      @unique
   username    String       @unique
   name        String
   surname     String

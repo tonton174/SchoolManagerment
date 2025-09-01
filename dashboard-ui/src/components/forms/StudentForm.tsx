@@ -42,8 +42,7 @@ const StudentForm = ({
 
   const [img, setImg] = useState<any>();
 
-  const actionHandler: any = type === "create" ? (createStudent as any) : (updateStudentBasic as any);
-  const [state, formAction] = useFormState(actionHandler, {
+  const [state, setState] = useState({
     success: false,
     error: false,
   });
@@ -63,7 +62,26 @@ const StudentForm = ({
   const { grades, classes, parents, canEditClass } = relatedData;
 
   return (
-    <form action={formAction} className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative">
+    <form onSubmit={handleSubmit(async (data) => {
+      // Add img data to form data before submission
+      if (img?.secure_url) {
+        data.img = img.secure_url;
+      }
+      
+      try {
+        const result = type === "create" 
+          ? await createStudent(state, data)
+          : await updateStudentBasic(state, data);
+        
+        if (result.success) {
+          setState({ success: true, error: false });
+        } else {
+          setState({ success: false, error: true });
+        }
+      } catch (error) {
+        setState({ success: false, error: true });
+      }
+    })} className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative">
       {/* Close button */}
       {setOpen && (
         <div className="absolute top-4 right-4">
