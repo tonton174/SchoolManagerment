@@ -11,6 +11,7 @@ import {
   deleteEvent,
   deleteResult,
   deleteAssignment,
+  deleteLesson,
 } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -31,9 +32,9 @@ const deleteActionMap = {
   event: deleteEvent,
   result: deleteResult,
   assignment: deleteAssignment,
+  lesson: deleteLesson,
 // TODO: OTHER DELETE ACTIONS
   parent: deleteSubject,
-  lesson: deleteSubject,
   attendance: deleteSubject,
 };
 
@@ -211,6 +212,9 @@ const FormModal = ({
       : "bg-lamaPurple";
 
   const [open, setOpen] = useState(false);
+  
+  // Debug log
+  console.log("FormModal props:", { table, type, data, id, relatedData });
 
   const Form = () => {
     const [state, formAction] = useFormState(deleteActionMap[table], {
@@ -226,13 +230,19 @@ const FormModal = ({
         setOpen(false);
         router.refresh();
       }
-    }, [state, router]);
+      if (state.error) {
+        const errorMessage = typeof state.error === 'object' && state.error?.message 
+          ? state.error.message 
+          : `Failed to delete ${table}`;
+        toast.error(errorMessage);
+      }
+    }, [state, router, table]);
 
     return type === "delete" && id ? (
       <div className="relative bg-white p-8 rounded-2xl shadow-lg w-full max-w-lg mx-auto flex flex-col gap-4">
         <button type="button" onClick={() => setOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl">×</button>
         <form action={formAction} className="flex flex-col gap-4">
-          <input type="text | number" name="id" value={id} hidden />
+          <input type="hidden" name="id" value={id} />
           <span className="text-center font-medium text-lg text-red-700">
             All data will be lost. Are you sure you want to delete this {table}?
           </span>

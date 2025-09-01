@@ -19,7 +19,7 @@ import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { randomUUID } from "crypto";
 
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean | { message: string } };
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -1112,5 +1112,149 @@ export const deleteAssignment = async (
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
+  }
+};
+
+// Lesson Actions
+export const createLesson = async (
+  currentState: CurrentState,
+  data: any
+) => {
+  try {
+    console.log("Creating lesson:", data);
+    
+    // Parse datetime strings to Date objects
+    const startTime = new Date(data.startTime);
+    const endTime = new Date(data.endTime);
+    
+    // Validate dates
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return { 
+        success: false, 
+        error: { message: "Invalid date format for start time or end time" }
+      };
+    }
+    
+    const newLesson = await prisma.lesson.create({
+      data: {
+        name: data.name,
+        day: data.day,
+        startTime: startTime,
+        endTime: endTime,
+        subjectId: parseInt(data.subjectId),
+        classId: parseInt(data.classId),
+        teacherId: data.teacherId,
+      },
+      include: {
+        subject: true,
+        class: true,
+        teacher: true,
+      },
+    });
+    
+    console.log("Lesson created:", newLesson);
+
+    revalidatePath("/list/lessons");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.log("Error creating lesson:", err);
+    return { 
+      success: false, 
+      error: { message: err.message || "Failed to create lesson" }
+    };
+  }
+};
+
+export const updateLesson = async (
+  currentState: CurrentState,
+  data: any
+) => {
+  if (!data.id) {
+    return { success: false, error: { message: "Missing lesson id" } };
+  }
+  try {
+    console.log("Updating lesson:", data);
+    
+    // Parse datetime strings to Date objects
+    const startTime = new Date(data.startTime);
+    const endTime = new Date(data.endTime);
+    
+    // Validate dates
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return { 
+        success: false, 
+        error: { message: "Invalid date format for start time or end time" }
+      };
+    }
+    
+    const updatedLesson = await prisma.lesson.update({
+      where: {
+        id: parseInt(data.id),
+      },
+      data: {
+        name: data.name,
+        day: data.day,
+        startTime: startTime,
+        endTime: endTime,
+        subjectId: parseInt(data.subjectId),
+        classId: parseInt(data.classId),
+        teacherId: data.teacherId,
+      },
+      include: {
+        subject: true,
+        class: true,
+        teacher: true,
+      },
+    });
+    
+    console.log("Lesson updated:", updatedLesson);
+
+    revalidatePath("/list/lessons");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.log("Error updating lesson:", err);
+    return { 
+      success: false, 
+      error: { message: err.message || "Failed to update lesson" }
+    };
+  }
+};
+
+export const deleteLesson = async (
+  currentState: CurrentState,
+  data: FormData
+) => {
+  const id = data.get("id") as string;
+  try {
+    console.log("Deleting lesson:", id);
+    console.log("FormData entries:", Array.from(data.entries()));
+    
+    if (!id) {
+      console.log("No ID provided for lesson deletion");
+      return { success: false, error: { message: "No lesson ID provided" } };
+    }
+    
+    const lessonId = parseInt(id);
+    if (isNaN(lessonId)) {
+      console.log("Invalid lesson ID:", id);
+      return { success: false, error: { message: "Invalid lesson ID" } };
+    }
+    
+    await prisma.lesson.delete({
+      where: {
+        id: lessonId,
+      },
+    });
+
+    console.log("Lesson deleted successfully");
+
+    revalidatePath("/list/lessons");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.log("Error deleting lesson:", err);
+    return { 
+      success: false, 
+      error: { message: err.message || "Failed to delete lesson" }
+    };
   }
 };

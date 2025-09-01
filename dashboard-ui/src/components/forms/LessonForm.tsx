@@ -1,7 +1,8 @@
 "use client";
 import { useForm } from "react-hook-form";
-import { useTransition } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
+import { createLesson, updateLesson } from "@/lib/actions";
 
 interface LessonFormProps {
   type: "create" | "update";
@@ -14,7 +15,14 @@ interface LessonFormProps {
 }
 
 const LessonForm = ({ type, data, subjects, classes, teachers, onSuccess, setOpen }: LessonFormProps) => {
-  const [isPending, startTransition] = useTransition();
+  const [state, setState] = useState<any>({
+    success: false,
+    error: false,
+  });
+  
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [weeksToRepeat, setWeeksToRepeat] = useState(1);
+  
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: data || {
       name: "",
@@ -27,28 +35,75 @@ const LessonForm = ({ type, data, subjects, classes, teachers, onSuccess, setOpe
     },
   });
 
-  const onSubmit = (formData: any) => {
-    startTransition(async () => {
-      try {
-        const response = await fetch('/api/lessons', {
-          method: type === "create" ? "POST" : "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...formData, id: data?.id }),
-        });
-        if (response.ok) {
-          toast.success(type === "create" ? "Lesson created!" : "Lesson updated!");
+  const onSubmit = handleSubmit(async (formData: any) => {
+    try {
+      if (type === "create") {
+        if (repeatWeekly && weeksToRepeat > 0) {
+          // Create multiple lessons for weekly repetition
+          const results = [];
+          for (let i = 0; i <= weeksToRepeat; i++) {
+            const lessonData = {
+              ...formData,
+              name: i === 0 ? formData.name : `${formData.name} ${i + 1}`,
+              startTime: new Date(formData.startTime),
+              endTime: new Date(formData.endTime),
+            };
+            
+            // Add weeks to dates for repeated lessons
+            if (i > 0) {
+              lessonData.startTime.setDate(lessonData.startTime.getDate() + (i * 7));
+              lessonData.endTime.setDate(lessonData.endTime.getDate() + (i * 7));
+            }
+            
+            const result = await createLesson(state, lessonData);
+            results.push(result);
+            
+            if (!result.success) {
+              toast.error(`Failed to create lesson ${i + 1}: ${typeof result.error === 'object' && result.error?.message ? result.error.message : "Error!"}`);
+              return;
+            }
+          }
+          
+          setState({ success: true, error: false });
+          toast.success(`Successfully created ${weeksToRepeat + 1} lessons!`);
           reset();
           if (onSuccess) onSuccess();
           if (setOpen) setOpen(false);
         } else {
-          const errorData = await response.json();
-          toast.error(errorData.error || "Error!");
+          // Create single lesson
+          const result = await createLesson(state, formData);
+          
+          if (result.success) {
+            setState({ success: true, error: false });
+            toast.success("Lesson created!");
+            reset();
+            if (onSuccess) onSuccess();
+            if (setOpen) setOpen(false);
+          } else {
+            setState({ success: false, error: result.error });
+            toast.error(typeof result.error === 'object' && result.error?.message ? result.error.message : "Error!");
+          }
         }
-      } catch (error) {
-        toast.error("Error!");
+      } else {
+        // Update lesson
+        const result = await updateLesson(state, { ...formData, id: data?.id });
+        
+        if (result.success) {
+          setState({ success: true, error: false });
+          toast.success("Lesson updated!");
+          reset();
+          if (onSuccess) onSuccess();
+          if (setOpen) setOpen(false);
+        } else {
+          setState({ success: false, error: result.error });
+          toast.error(typeof result.error === 'object' && result.error?.message ? result.error.message : "Error!");
+        }
       }
-    });
-  };
+    } catch (error) {
+      setState({ success: false, error: { message: "An unexpected error occurred" } });
+      toast.error("Error!");
+    }
+  });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative">
@@ -111,11 +166,53 @@ const LessonForm = ({ type, data, subjects, classes, teachers, onSuccess, setOpe
           {teachers.map(t => <option key={t.id} value={t.id}>{t.name} {t.surname}</option>)}
         </select>
       </div>
+      
+      {/* Weekly repetition options - only show for create mode */}
+      {type === "create" && (
+        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="repeatWeekly"
+              checked={repeatWeekly}
+              onChange={(e) => setRepeatWeekly(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="repeatWeekly" className="text-sm font-medium text-gray-700">
+              Lặp lại hàng tuần
+            </label>
+          </div>
+          
+          {repeatWeekly && (
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">
+                Số tuần lặp lại:
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="52"
+                value={weeksToRepeat}
+                onChange={(e) => setWeeksToRepeat(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="text-xs text-gray-500">
+                (sẽ tạo {weeksToRepeat + 1} lesson)
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      
       <div className="flex justify-end">
-        <button type="submit" disabled={isPending} className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50">
-          {isPending ? "Processing..." : type === "create" ? "Add lesson" : "Update lesson"}
-        </button>
-      </div>
+         <button type="submit" className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50">
+           {type === "create" 
+             ? (repeatWeekly && weeksToRepeat > 0 
+                 ? `Add ${weeksToRepeat + 1} lessons` 
+                 : "Add lesson")
+             : "Update lesson"}
+         </button>
+       </div>
     </form>
   );
 };

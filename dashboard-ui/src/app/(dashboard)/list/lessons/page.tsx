@@ -25,8 +25,12 @@ const role = (sessionClaims?.metadata as { role?: string })?.role;
 
 const columns = [
   {
-    header: "Subject Name",
-    accessor: "name",
+    header: "Lesson Name",
+    accessor: "lessonName",
+  },
+  {
+    header: "Subject",
+    accessor: "subject",
   },
   {
     header: "Class",
@@ -52,7 +56,8 @@ const renderRow = (item: LessonList) => (
     key={item.id}
     className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
   >
-    <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
+    <td className="flex items-center gap-4 p-4">{item.name}</td>
+    <td>{item.subject.name}</td>
     <td>{item.class.name}</td>
     <td className="hidden md:table-cell">
       {item.teacher.name + " " + item.teacher.surname}
@@ -62,13 +67,13 @@ const renderRow = (item: LessonList) => (
         {role === "admin" && (
           <>
             <FormContainer table="lesson" type="update" data={item} />
-            <FormContainer table="lesson" type="delete" id={item.id} />
+            <FormContainer table="lesson" type="delete" id={String(item.id)} />
           </>
         )}
       </div>
     </td>
   </tr>
-);
+ );
 
   const { page, ...queryParams } = searchParams;
 
