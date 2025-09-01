@@ -35,11 +35,23 @@ export const createSubject = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/subjects");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.log("Error creating subject:", err);
+    
+    // Handle unique constraint violation
+    if (err.code === 'P2002' && err.meta?.target?.includes('name')) {
+      return { 
+        success: false, 
+        error: { message: "Subject name already exists. Please choose a different name." }
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: { message: err.message || "Failed to create subject" }
+    };
   }
 };
 

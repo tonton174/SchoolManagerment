@@ -9,21 +9,29 @@ import { useRouter } from "next/navigation";
 const CreateAccountButton = ({ studentId }: { studentId: string }) => {
   const [showForm, setShowForm] = useState(false);
   const [password, setPassword] = useState("");
-  const [state, formAction] = useFormState(linkStudentToClerk, {
+  const [state, setState] = useState({
     success: false,
     error: false,
   });
 
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData();
-    formData.append("studentId", studentId);
-    if (password) {
-      formData.append("password", password);
+    try {
+      const result = await linkStudentToClerk(state, {
+        studentId,
+        password: password || undefined
+      });
+      
+      if (result.success) {
+        setState({ success: true, error: false });
+      } else {
+        setState({ success: false, error: true });
+      }
+    } catch (error) {
+      setState({ success: false, error: true });
     }
-    formAction(formData);
   };
 
   useEffect(() => {

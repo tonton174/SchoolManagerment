@@ -6,7 +6,7 @@ import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -29,19 +29,26 @@ const SubjectForm = ({
     resolver: zodResolver(subjectSchema),
   });
 
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
+  const [state, setState] = useState<any>({
+    success: false,
+    error: false,
+  });
 
-  const [state, formAction] = useFormState(
-    type === "create" ? createSubject : updateSubject,
-    {
-      success: false,
-      error: false,
-    }
-  );
-
-  const onSubmit = handleSubmit((data) => {
+  const onSubmit = handleSubmit(async (data) => {
     console.log(data);
-    formAction(data);
+    try {
+      const result = type === "create" 
+        ? await createSubject(state, data)
+        : await updateSubject(state, data);
+      
+      if (result.success) {
+        setState({ success: true, error: false });
+      } else {
+        setState({ success: false, error: result.error });
+      }
+    } catch (error) {
+      setState({ success: false, error: { message: "An unexpected error occurred" } });
+    }
   });
 
   const router = useRouter();
@@ -117,7 +124,11 @@ const SubjectForm = ({
         </div>
       </div>
       {state.error && (
-        <span className="text-red-500 text-xs mt-1 font-medium">Something went wrong!</span>
+        <span className="text-red-500 text-xs mt-1 font-medium">
+          {typeof state.error === 'object' && state.error.message 
+            ? state.error.message 
+            : "Something went wrong!"}
+        </span>
       )}
       <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50">
         {type === "create" ? "Create" : "Update"}
