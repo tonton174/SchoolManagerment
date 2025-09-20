@@ -53,45 +53,52 @@ export default async function AttendancePage() {
     );
   }
 
-  // Teacher/Admin: Lấy tất cả lesson của mình (hoặc toàn bộ nếu admin)
-  let lessons = [];
+  // Teacher/Admin: Lấy các lớp mà họ có quyền quản lý
+  let classes = [];
+  
   if (role === 'teacher') {
-    lessons = await prisma.lesson.findMany({
-      where: { teacherId: userId! },
-      include: { class: { select: { name: true, students: { select: { id: true, name: true, surname: true } } } } },
-      orderBy: { startTime: 'desc' },
+    // Lấy các lớp mà giáo viên phụ trách hoặc dạy
+    classes = await prisma.class.findMany({
+      where: {
+        OR: [
+          { supervisorId: userId! },
+          { lessons: { some: { teacherId: userId! } } }
+        ]
+      },
+      include: { students: { select: { id: true, name: true, surname: true } } },
+      orderBy: { name: 'asc' }
     });
   } else if (role === 'admin') {
-    lessons = await prisma.lesson.findMany({
-      include: { class: { select: { name: true, students: { select: { id: true, name: true, surname: true } } } } },
-      orderBy: { startTime: 'desc' },
+    // Admin có thể xem tất cả lớp
+    classes = await prisma.class.findMany({
+      include: { students: { select: { id: true, name: true, surname: true } } },
+      orderBy: { name: 'asc' }
     });
   } else {
     return notFound();
   }
 
-  // Lấy lịch sử điểm danh cho từng lesson
-  const attendanceByLesson: Record<number, any[]> = {};
-  for (const lesson of lessons) {
-    const history = await prisma.attendance.findMany({
-      where: { lessonId: lesson.id },
-      include: { student: { select: { name: true, surname: true } } },
-      orderBy: { date: 'desc' },
-    });
-    attendanceByLesson[lesson.id] = history;
-  }
-
-  // Lấy lesson hôm nay để tạo điểm danh mới
-  const todayLessons = lessons.filter(l => {
-    const start = new Date(l.startTime);
-    return start >= today && start < tomorrow;
+  // Lấy tất cả lịch sử điểm danh (chỉ điểm danh tự do, không qua lesson)
+  const allAttendanceRaw = await prisma.attendance.findMany({
+    include: { 
+      student: { 
+        select: { 
+          name: true, 
+          surname: true,
+          class: { select: { name: true } }
+        } 
+      }
+    },
+    orderBy: { date: 'desc' },
   });
+
+  // Filter chỉ lấy điểm danh tự do (không có lessonId)
+  const allAttendance = allAttendanceRaw.filter(attendance => attendance.lessonId === null);
 
   return (
     <AttendanceDashboard
-      lessons={lessons}
-      attendanceByLesson={attendanceByLesson}
-      todayLessons={todayLessons}
+      classes={classes}
+      allAttendance={allAttendance}
     />
   );
 } 

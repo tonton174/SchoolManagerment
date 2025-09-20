@@ -34,8 +34,8 @@ const StudentListPage = async ({
       className: "hidden md:table-cell",
     },
     {
-      header: "Grade",
-      accessor: "grade",
+      header: "Class",
+      accessor: "class",
       className: "hidden md:table-cell",
     },
     {
@@ -77,7 +77,7 @@ const StudentListPage = async ({
         </div>
       </td>
       <td className="hidden md:table-cell">{item.username}</td>
-      <td className="hidden md:table-cell">{item.class.name[0]}</td>
+      <td className="hidden md:table-cell">{item.class.name}</td>
       <td className="hidden md:table-cell">{item.phone}</td>
       <td className="hidden md:table-cell">{item.address}</td>
       <td>
@@ -88,7 +88,10 @@ const StudentListPage = async ({
             </button>
           </Link>
           {role === "admin" && (
-            <FormContainer table="student" type="delete" id={item.id} />
+            <>
+              <FormContainer table="student" type="update" data={item} />
+              <FormContainer table="student" type="delete" id={item.id} />
+            </>
           )}
         </div>
       </td>
@@ -124,16 +127,35 @@ const StudentListPage = async ({
   switch (role) {
     case "admin":
       break;
-    case "teacher":
-      // Teacher chỉ thấy students trong lớp mà họ dạy
-      query.class = {
-        lessons: {
-          some: {
-            teacherId: currentUserId!,
-          },
-        },
-      };
+    case "teacher": {
+      // Teacher thấy học sinh của các lớp họ dạy hoặc lớp họ chủ nhiệm
+      const taughtClassIdsRaw = await prisma.lesson.findMany({
+        where: { teacherId: currentUserId! },
+        select: { classId: true },
+        distinct: ["classId"],
+      });
+      const supervisedClassesRaw = await prisma.class.findMany({
+        where: { supervisorId: currentUserId! },
+        select: { id: true },
+      });
+      const classIdSet = new Set<number>();
+      taughtClassIdsRaw.forEach((c) => classIdSet.add(c.classId));
+      supervisedClassesRaw.forEach((c) => classIdSet.add(c.id));
+      const classIds = Array.from(classIdSet);
+      if (classIds.length > 0) {
+        // Tôn trọng bộ lọc classId nếu có và thuộc phạm vi lớp giáo viên quản lý
+        const selectedClassId = queryParams.classId ? parseInt(queryParams.classId) : undefined;
+        if (selectedClassId && classIds.includes(selectedClassId)) {
+          query.classId = selectedClassId as any;
+        } else {
+          query.classId = { in: classIds } as any;
+        }
+      } else {
+        // Không dạy lớp nào -> không thấy học sinh
+        query.id = "__none__" as any;
+      }
       break;
+    }
     case "student":
       // Student chỉ thấy chính mình
       query.id = currentUserId!;

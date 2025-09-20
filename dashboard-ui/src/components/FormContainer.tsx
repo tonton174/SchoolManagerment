@@ -75,14 +75,23 @@ const FormContainer = async ({ table, type, data, id, onSuccess }: FormContainer
         relatedData = { lessons: examLessons };
         break;
       case "comment":
-        const commentStudents = await prisma.student.findMany({
-          include: { class: true },
-        });
-        const commentLessons = role === "teacher" ? await prisma.lesson.findMany({
-          where: { teacherId: currentUserId! },
-          include: { subject: true },
-        }) : [];
-        relatedData = { students: commentStudents, lessons: commentLessons };
+        let commentStudents;
+        let commentClasses: Array<{ id: number; name: string }> = [];
+        let commentLessons = [] as any[];
+
+        if (role === "teacher") {
+          // Đơn giản hoá để đảm bảo có dữ liệu: trả về toàn bộ học sinh + toàn bộ lớp
+          commentStudents = await prisma.student.findMany({ include: { class: true } });
+          commentClasses = await prisma.class.findMany({ select: { id: true, name: true } });
+          commentLessons = [];
+          relatedData = { students: commentStudents, lessons: commentLessons, classes: commentClasses };
+        } else {
+          // Admin / role khác: tất cả
+          commentStudents = await prisma.student.findMany({ include: { class: true } });
+          commentClasses = await prisma.class.findMany({ select: { id: true, name: true } });
+          commentLessons = [];
+          relatedData = { students: commentStudents, lessons: commentLessons, classes: commentClasses };
+        }
         break;
       case "lesson":
         const lessonSubjects = await prisma.subject.findMany({ select: { id: true, name: true } });

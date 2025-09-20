@@ -144,9 +144,36 @@ const TeacherListPage = async ({
   switch (role) {
     case "admin":
       break;
-    case "teacher":
-      query.id = currentUserId!;
+    case "teacher": {
+      // Lấy danh sách classId mà giáo viên hiện tại dạy (qua lessons)
+      const taughtClassIdsRaw = await prisma.lesson.findMany({
+        where: { teacherId: currentUserId! },
+        select: { classId: true },
+        distinct: ["classId"],
+      });
+      // Lấy danh sách classId mà giáo viên hiện tại làm chủ nhiệm
+      const supervisedClassesRaw = await prisma.class.findMany({
+        where: { supervisorId: currentUserId! },
+        select: { id: true },
+      });
+      const classIdSet = new Set<number>();
+      taughtClassIdsRaw.forEach((c) => classIdSet.add(c.classId));
+      supervisedClassesRaw.forEach((c) => classIdSet.add(c.id));
+      const classIds = Array.from(classIdSet);
+
+      // Giáo viên xem đồng nghiệp dạy cùng hoặc cùng chủ nhiệm các lớp đó (kể cả chính họ)
+      if (classIds.length > 0) {
+        query.OR = [
+          { lessons: { some: { classId: { in: classIds } } } },
+          { classes: { some: { id: { in: classIds } } } },
+          { id: currentUserId! },
+        ];
+      } else {
+        // Không có lớp dạy/chủ nhiệm -> vẫn xem được chính họ
+        query.id = currentUserId!;
+      }
       break;
+    }
     case "student":
       // Students can see teachers who teach their class
       query.classes = {

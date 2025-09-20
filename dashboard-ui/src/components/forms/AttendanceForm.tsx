@@ -62,7 +62,12 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
 
   const onSubmit = async (formData: any) => {
     if (!selectedLessonId) {
-      toast.error("Please select a lesson!");
+      toast.error("Vui lòng chọn lesson!");
+      return;
+    }
+    
+    if (attendance.length === 0) {
+      toast.error("Không có học sinh nào để điểm danh!");
       return;
     }
     
@@ -76,16 +81,20 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
           attendance,
         }),
       });
+      
+      const result = await response.json();
+      
       if (response.ok) {
-        toast.success("Attendance saved!");
+        toast.success(result.message || "Điểm danh đã được lưu!");
         if (onSuccess) onSuccess();
         if (setOpen) setOpen(false);
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Error!");
+        toast.error(result.error || "Có lỗi xảy ra!");
+        console.error("Attendance error:", result);
       }
     } catch (error) {
-      toast.error("Error!");
+      console.error("Attendance error:", error);
+      toast.error("Có lỗi xảy ra khi lưu điểm danh!");
     } finally {
       setIsPending(false);
     }
@@ -109,9 +118,9 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
           </button>
         </div>
       )}
-      <h1 className="text-xl font-semibold mb-4">Attendance</h1>
+      <h1 className="text-xl font-semibold mb-4">Điểm danh</h1>
       <div>
-        <label className="text-xs text-gray-500 mb-2">Lesson</label>
+        <label className="text-xs text-gray-500 mb-2">Buổi học</label>
         <select
           {...register("lessonId")}
           value={selectedLessonId || ""}
@@ -126,28 +135,41 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
         </select>
       </div>
       <div className="flex items-center gap-4 mb-2">
-        <button type="button" onClick={() => setAll(true)} className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-xs">Mark all present</button>
-        <button type="button" onClick={() => setAll(false)} className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs">Mark all absent</button>
-        <span className="ml-auto text-xs text-gray-500">Present: {presentCount} / {attendance.length} | Absent: {absentCount}</span>
+        <button type="button" onClick={() => setAll(true)} className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-xs">Chọn tất cả có mặt</button>
+        <button type="button" onClick={() => setAll(false)} className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs">Chọn tất cả vắng mặt</button>
+        <span className="ml-auto text-xs text-gray-500">Có mặt: {presentCount} / {attendance.length} | Vắng mặt: {absentCount}</span>
       </div>
       <div>
-        <label className="text-xs text-gray-500 mb-2 block">Students</label>
-        <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
-          {students.map(student => {
-            const checked = attendance.find(a => a.studentId === student.id)?.present;
-            return (
-              <div key={student.id} className="flex items-center justify-between px-4 py-2">
-                <span>{student.name} {student.surname}</span>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={e => onChangeTick(student.id, e.target.checked)}
-                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="ml-2 text-xs text-gray-500">Present</span>
-              </div>
-            );
-          })}
+        <label className="text-xs text-gray-500 mb-2 block">Học sinh</label>
+        <div className="max-h-64 overflow-y-auto border rounded-lg">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Học sinh</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Có mặt</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {students.map(student => {
+                const checked = attendance.find(a => a.studentId === student.id)?.present;
+                return (
+                  <tr key={student.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">
+                      <span className="text-sm font-medium text-gray-900">{student.name} {student.surname}</span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => onChangeTick(student.id, e.target.checked)}
+                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
       <div className="flex justify-end">
@@ -156,18 +178,18 @@ const AttendanceForm = ({ lessons, students: initialStudents, onSuccess, setOpen
           disabled={isPending}
           className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition-all disabled:opacity-50"
         >
-          {isPending ? "Saving..." : "Save Attendance"}
+          {isPending ? "Đang lưu..." : "Lưu điểm danh"}
         </button>
       </div>
       {/* Lịch sử điểm danh của lesson này */}
       {history.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-base font-semibold mb-2">Attendance History</h2>
+          <h2 className="text-base font-semibold mb-2">Lịch sử điểm danh</h2>
           <div className="max-h-40 overflow-y-auto border rounded-lg divide-y text-xs">
             {history.map((a, idx) => (
               <div key={a.id || idx} className="flex items-center justify-between px-4 py-2">
                 <span>{a.student?.name} {a.student?.surname}</span>
-                <span className={a.present ? "text-green-600" : "text-red-600"}>{a.present ? "Present" : "Absent"}</span>
+                <span className={a.present ? "text-green-600" : "text-red-600"}>{a.present ? "Có mặt" : "Vắng mặt"}</span>
                 <span className="text-gray-400">{new Date(a.date).toLocaleString()}</span>
               </div>
             ))}

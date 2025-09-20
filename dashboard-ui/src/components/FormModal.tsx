@@ -138,6 +138,7 @@ const forms: {
       students={relatedData?.students || []}
       lessons={relatedData?.lessons || []}
       teachers={relatedData?.teachers || []}
+      classes={relatedData?.classes || []}
       onSuccess={onSuccess}
       setOpen={setOpen}
     />

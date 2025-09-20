@@ -11,14 +11,15 @@ import { Dispatch, SetStateAction } from "react";
 interface CommentFormProps {
   type: "create" | "update";
   data?: CommentSchemaType;
-  students: Array<{ id: string; name: string; surname: string; class: { name: string } }>;
+  students: Array<{ id: string; name: string; surname: string; class: { id: number; name: string } }>;
   lessons?: Array<{ id: number; name: string; subject: { name: string } }>;
   teachers?: Array<{ id: string; name: string; surname: string }>;
+  classes?: Array<{ id: number; name: string }>;
   onSuccess?: () => void; // Callback để cập nhật state
   setOpen?: Dispatch<SetStateAction<boolean>>; // Để đóng modal
 }
 
-const CommentForm = ({ type, data, students, lessons, teachers, onSuccess, setOpen }: CommentFormProps) => {
+const CommentForm = ({ type, data, students, lessons, teachers, classes = [], onSuccess, setOpen }: CommentFormProps) => {
   const [isPending, startTransition] = useTransition();
   const { userId, sessionClaims } = useAuth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -103,6 +104,25 @@ const CommentForm = ({ type, data, students, lessons, teachers, onSuccess, setOp
     });
   };
 
+  // Tạo danh sách lớp fallback từ students nếu classes rỗng
+  const computedClasses = classes.length
+    ? classes
+    : Array.from(
+        new Map(
+          students
+            .filter((s) => s.class)
+            .map((s) => [s.class.id, { id: s.class.id, name: s.class.name }])
+        ).values()
+      );
+
+  // Lọc học sinh theo lớp đã chọn (client-side)
+  const selectedClassId = watch("classId" as any);
+  const filteredStudents = (() => {
+    if (!selectedClassId) return students;
+    const cid = Number(selectedClassId);
+    return students.filter((s) => s.class && Number(s.class.id) === cid);
+  })();
+
   return (
     <form onSubmit={handleSubmit(onSubmit)}
       className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-6 border border-gray-100 relative"
@@ -120,6 +140,22 @@ const CommentForm = ({ type, data, students, lessons, teachers, onSuccess, setOp
         </button>
         </div>
       )}
+      {/* Class Selection */}
+      <div>
+        <label className="block text-base font-semibold text-gray-800 mb-2">
+          Class
+        </label>
+        <select
+          {...register("classId" as any)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+        >
+          <option value="">Select class</option>
+          {computedClasses.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Student Selection */}
       <div>
         <label className="block text-base font-semibold text-gray-800 mb-2">
@@ -130,7 +166,7 @@ const CommentForm = ({ type, data, students, lessons, teachers, onSuccess, setOp
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
         >
           <option value="">Select student</option>
-          {students.map((student) => (
+          {filteredStudents.map((student) => (
             <option key={student.id} value={student.id}>
               {student.name} {student.surname} - {student.class.name}
             </option>
