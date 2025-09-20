@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // Lấy lịch sử điểm danh theo lessonId hoặc classId + date
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -100,16 +102,19 @@ export async function POST(request: NextRequest) {
 
     // Lưu mới từng bản ghi
     const created = await Promise.all(
-      attendance.map((a: { studentId: string; present: boolean }) =>
-        prisma.attendance.create({
-          data: {
-            ...(lessonId ? { lessonId: Number(lessonId) } : {}),
-            studentId: a.studentId,
-            present: a.present,
-            date: attendanceDate,
-          },
-        })
-      )
+      attendance.map((a: { studentId: string; present: boolean }) => {
+        const data: any = {
+          studentId: a.studentId,
+          present: a.present,
+          date: attendanceDate,
+        };
+        
+        if (lessonId) {
+          data.lessonId = Number(lessonId);
+        }
+        
+        return prisma.attendance.create({ data });
+      })
     );
     
     return NextResponse.json({ 

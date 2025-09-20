@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import * as XLSX from 'xlsx';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { userId, sessionClaims } = await auth();
